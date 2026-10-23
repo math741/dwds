@@ -1,0 +1,75 @@
+# Builds the MLG app for the Quest on every change and publishes it as the
+# "mlg-apk" release: download MLG.apk from there and sideload it.
+name: MLG APK
+
+on:
+  push:
+    paths:
+      - "mlg/android/**"
+      - "mlg/engine/**"
+      - "mlg/data/trust/qroot/**"
+      - ".github/workflows/mlg-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mlg-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: The headset engine matches PyTorch
+        run: |
+          pip install -q numpy torch --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+          python mlg/tests/test_engine.py
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Android NDK, CMake and platform
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;26.3.11579264" "cmake;3.22.1" "platforms;android-34" "build-tools;34.0.0" > /dev/null
+
+      - name: Build
+        working-directory: mlg/android
+        env:
+          MLG_KEYSTORE_B64: ${{ secrets.MLG_KEYSTORE_B64 }}
+          MLG_KEYSTORE_PASSWORD: ${{ secrets.MLG_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$MLG_KEYSTORE_B64" ]; then
+            echo "$MLG_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/mlg.keystore"
+            export MLG_KEYSTORE_FILE="$RUNNER_TEMP/mlg.keystore"
+          else
+            unset MLG_KEYSTORE_PASSWORD
+          fi
+          gradle assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/MLG.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MLG-apk
+          path: MLG.apk
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete mlg-apk --yes --cleanup-tag || true
+          gh release create mlg-apk MLG.apk --prerelease --target "$GITHUB_SHA" \
+            --title "MLG · app para o Quest (build $GITHUB_RUN_NUMBER)" \
+            --notes "Instale no Quest 3S com o SideQuest ou com: adb install -r MLG.apk. Os cérebros chegam sozinhos do release mlg-brain, publicado pelo notebook do Colab."

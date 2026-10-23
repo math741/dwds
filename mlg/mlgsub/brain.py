@@ -289,6 +289,13 @@ def inherit(child, parent, pstate):
 
 
 # ---- data: train / dev / frozen Q root ------------------------------------
+def held_lines(root):
+    """Every line of the sealed suites and the dev suite: never trained on, never retrieved for training."""
+    paths = [Corpus.QROOT, Corpus.GATE] + Corpus.DEV
+    blob = b"\n".join(open(os.path.join(root, p), "rb").read() for p in paths)
+    return {l.strip() for l in blob.splitlines() if len(l.strip()) > 8}
+
+
 class Corpus:
     """Train on the MLG corpus, select on dev, and keep the Q root sealed.
     Any Q root or dev line that also appears in training is removed from the

@@ -90,22 +90,23 @@ def wiki_passages(path, limit_bytes=None):
                 break
 
 
-def build(root, out, train_files, held, wiki=None, wiki_bytes=None, max_df=0.05, log=print):
-    """Write passages.tsv next to `out`, index it, return the passages."""
+def build(root, out, train_files, held, wiki=(), max_df=0.05, log=print):
+    """Index the MLG corpus (minus `held` lines) and `wiki` passages into `out`;
+    returns the passages in index order (their ids)."""
     cli = build_cli()
     tsv = out + ".tsv"
     passages = []
     with open(tsv, "w", encoding="utf-8") as fh:
-        for source in [mlg_passages(root, train_files, held)] + ([wiki_passages(wiki, wiki_bytes)] if wiki else []):
-            for title, text in source:
-                title, text = _clean(title), _clean(text)
-                if text:
-                    fh.write(f"{title}\t{text}\n")
-                    passages.append((title, text))
+        for title, text in list(mlg_passages(root, train_files, held)) + list(wiki):
+            title, text = _clean(title), _clean(text)
+            if text:
+                fh.write(f"{title}\t{text}\n")
+                passages.append((title, text))
     r = subprocess.run([cli, "index", tsv, out, str(max_df)], capture_output=True, text=True)
+    os.remove(tsv)
     if r.returncode:
         raise RuntimeError(r.stdout + r.stderr)
-    log(f"[knowledge] {r.stdout.strip()}, {os.path.getsize(out) / 2**20:.1f} MiB")
+    log(f"[knowledge] {os.path.basename(out)}: {r.stdout.strip()}, {os.path.getsize(out) / 2**20:.1f} MiB")
     return passages
 
 
