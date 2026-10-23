@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the MLG core: two orbits around a nucleus -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:strokeColor="#19E3B1" android:strokeWidth="2.5" android:fillColor="#00000000"
+        android:pathData="M54,30a24,24 0,1 1,-0.1 0z" />
+    <path android:strokeColor="#FF8A3D" android:strokeWidth="2" android:fillColor="#00000000"
+        android:pathData="M54,40a14,14 0,1 1,-0.1 0z" />
+    <path android:fillColor="#E8FFF8" android:pathData="M54,48a6,6 0,1 1,-0.1 0z" />
+    <path android:strokeColor="#19E3B1" android:strokeWidth="1.5" android:pathData="M28,54 L36,54 M72,54 L80,54 M54,26 L54,22 M54,82 L54,86" />
+</vector>

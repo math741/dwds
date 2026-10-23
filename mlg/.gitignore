@@ -7,3 +7,5 @@ engine/mlg_cli
 build/
 .gradle/
 local.properties
+android/app/build/
+android/app/.cxx/

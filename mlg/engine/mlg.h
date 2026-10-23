@@ -69,6 +69,9 @@ int mlg_know_search(const mlg_know *k, const char *query, int top, int *ids, flo
 /* Passage text (UTF-8, not NUL-terminated) and its title. */
 const char *mlg_know_text(const mlg_know *k, int id, int *len);
 const char *mlg_know_title(const mlg_know *k, int id, int *len);
+/* Lab side (mlg_know_build.c): index "title<TAB>text" lines. Returns passages or -1;
+ * err receives a summary either way. */
+int mlg_know_build(const char *tsv, const char *out_path, float max_df, char *err, int errlen);
 
 /* ---- router ------------------------------------------------------------- */
 typedef struct mlg_router mlg_router;

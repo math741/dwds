@@ -42,6 +42,9 @@ class Furnace:
         self.keep = 4
         self.lineage = {}  # genome -> (seconds and bytes trained by it and its ancestors, inherited generations)
         self.save_dir = os.environ.get("MLG_CHAMPIONS", "champions")  # every COMMIT is saved here
+        self.on_step = None    # train() hook: the live link answers the headset between steps
+        self.on_commit = None  # called with the new champion's row
+        self.seconds_override = None  # maturation trains one brain for hours
         self._suites()
 
     # ---- frozen rulers -------------------------------------------------
@@ -78,7 +81,7 @@ class Furnace:
         did = f"decision:{self.home.id}:{self.n_decisions:04d}"
         self.sub.obj("Decision", did, origin="furnace", epistemic="OBSERVED",
                      verdict=verdict, stage=stage, reason=reason, body=self.home.id, **props)
-        self.sub.link(did, "CHOSE" if verdict == "COMMIT" else "KILLED", brain_or_genome)
+        self.sub.link(did, "CHOSE" if verdict in ("COMMIT", "RESTORE") else "KILLED", brain_or_genome)
         for ev in evidence:
             self.sub.link(did, "JUSTIFIED_BY", ev)
         self.sub.event(verdict, brain_or_genome, stage=stage, reason=reason, decision=did)
@@ -93,8 +96,9 @@ class Furnace:
         return eid
 
     # ---- one candidate through the furnace -----------------------------
-    def run(self, g, generation, parents=(), mutated=(), seed=0, inheritance=None):
-        """`inheritance`: (weights, mode, parent brain id, parent genome id)."""
+    def run(self, g, generation, parents=(), mutated=(), seed=0, inheritance=None, train_kw=None):
+        """`inheritance`: (weights, mode, parent brain id, parent genome id);
+        `train_kw`: extra arguments for brain.train (maturation resumes with them)."""
         s, lab = self.sub, self.lab
         gid = B.genome_id(g)
         pred = B.predict(g, lab, self.deploy)
@@ -116,21 +120,22 @@ class Furnace:
             self.log(f"  x {tag}: killed before running, needs {pred['train_bytes'] / 2**30:.1f} GiB")
             return {**row, "status": "KILLED", "stage": "SANDBOX"}
         if self.deploy is not None and not pred["fits_deploy"]:
-            self._decide("KILL", "SANDBOX", gid,
-                         f"would not live in {self.deploy.id}: "
-                         f"{pred['deploy_bytes'] / 2**20:.0f} MiB, {pred['deploy_latency_ms']:.1f} ms/byte",
-                         [self.deploy.traits["brain_memory_budget"], self.deploy.traits["latency_budget"]])
-            self.log(f"  x {tag}: killed, cannot live in {self.deploy.name} "
-                     f"({pred['deploy_bytes'] / 2**20:.0f} MiB, {pred['deploy_latency_ms']:.1f} ms/byte)")
+            why = (f"{pred['deploy_bytes'] / 2**20:.0f} MiB, {pred['deploy_latency_ms']:.1f} ms/byte, "
+                   f"first byte after {pred['deploy_prefill_s']:.1f} s")
+            self._decide("KILL", "SANDBOX", gid, f"would not live in {self.deploy.id}: {why}",
+                         [self.deploy.traits[t] for t in ("brain_memory_budget", "latency_budget",
+                                                          "prefill_budget") if t in self.deploy.traits])
+            self.log(f"  x {tag}: killed, cannot live in {self.deploy.name} ({why})")
             return {**row, "status": "KILLED", "stage": "SANDBOX"}
 
         # TRAIN in the lab. Running out of memory means the self-model lied:
         # the candidate dies and the memory model becomes more pessimistic.
         oom = False
         try:
-            model, real = B.train(g, lab, self.corpus, self.seconds, seed=seed,
+            model, real = B.train(g, lab, self.corpus, self.seconds_override or self.seconds, seed=seed,
                                   init_state=inheritance[0] if inheritance else None,
-                                  lr_scale=INHERITED_LR if inheritance else 1.0)
+                                  lr_scale=INHERITED_LR if inheritance else 1.0, on_step=self.on_step,
+                                  **(train_kw or {}))
         except torch.cuda.OutOfMemoryError:
             oom = True  # handled outside, once the traceback has released the tensors
         if oom:
@@ -207,6 +212,39 @@ class Furnace:
         self._compare(row, tag)
         return row
 
+    def adopt(self, path, log=print):
+        """Bring back a champion saved by an earlier session (its checkpoint),
+        re-measured here on the same sealed suites before it is trusted."""
+        model, g = B.load_brain(path, self.lab.device)
+        ck = torch.load(path, map_location="cpu", weights_only=True)
+        gid, dev = B.genome_id(g), self.lab.device
+        bid = ck.get("brain") or f"brain:{gid[7:]}@{self.home.id[5:]}"
+        self.sub.obj("Genome", gid, origin="furnace.adopt", epistemic="EXPERIMENTAL", home=self.home.id, **g)
+        self.sub.obj("Brain", bid, origin="furnace.adopt", epistemic="TESTED", checkpoint=path,
+                     params=B.params(g)[0])
+        self.sub.link(gid, "EXPRESSES", bid)
+        dev_bpb = B.bits_per_byte(model, g, self.corpus.dev, dev)
+        nats = {"gate": B.byte_nats(model, g, self.corpus.gate, dev).cpu(),
+                "qroot": B.byte_nats(model, g, self.corpus.qroot, dev).cpu()}
+        q_bpb, gate_bpb = (nats[k].mean().item() / math.log(2) for k in ("qroot", "gate"))
+        row = {"genome": gid, "g": g, "generation": -1, "params": B.params(g)[0], "brain": bid,
+               "status": "SURVIVED", "dev_bpb": dev_bpb, "gap": 0.0, "model": model, "lineage_bytes": 0,
+               "cost": 0.0, "latency_ms": 0.0, "joules": None, "seconds": 0.0, "nats": nats,
+               "qroot_bpb": q_bpb, "q": B.q_language(q_bpb), "gate_bpb": gate_bpb, "checkpoint": path}
+        row["eval_dev"] = self._evaluate(bid, "suite:dev", dev_bpb)
+        row["eval_q"] = self._evaluate(bid, "suite:qroot-language", q_bpb)
+        row["eval_gate"] = self._evaluate(bid, "suite:gate-dialog", gate_bpb)
+        row["decision"] = self._decide("RESTORE", "COMPARE", bid, f"champion of an earlier session, re-measured: "
+                                       f"dialog gate {gate_bpb:.3f} bpb, Q root {q_bpb:.3f} bpb",
+                                       [row["eval_dev"], row["eval_gate"], row["eval_q"]])
+        self.champion = row
+        self.results.append(row)
+        self._remember(gid, model, dev_bpb)
+        if self.on_commit:
+            self.on_commit(row)
+        log(f"[restore] {bid}: dev {dev_bpb:.3f}, dialog gate {gate_bpb:.3f}, Q root {q_bpb:.3f} bpb")
+        return row
+
     def _remember(self, gid, model, dev_bpb):
         """Keep the weights of the best few brains so children can inherit them."""
         worst = max(self.states.items(), key=lambda kv: kv[1][0]) if self.states else None
@@ -253,8 +291,9 @@ class Furnace:
             else:
                 self.sub.link(bid, "CHALLENGED", champ["brain"], won=False)
                 why = ("the language Q root got worse" if regresses else
-                       "the gain on the sealed gate is not sure" if gain > 0 else
-                       "the sealed gate did not improve")
+                       "the sealed gate did not improve" if gain <= 0 else
+                       "the gain on the sealed gate is not sure" if lo <= 0 else
+                       "the gain on the sealed gate is within the Q root tolerance")
                 self._decide("ROLLBACK", "COMPARE", bid, f"better on dev, but {why}: {verdict}", evidence)
                 self.log(f"    rollback: dev improved, {why} (gate {gain:+.3f} bpb, "
                          f"95% [{lo:+.3f}, {hi:+.3f}])")
@@ -270,6 +309,8 @@ class Furnace:
         if champ is not None:
             champ["model"] = champ["nats"] = None
         self.champion = row
+        if self.on_commit:
+            self.on_commit(row)
         self.log(f"    COMMIT {bid}: dialog gate {gate_bpb:.3f} bpb, Q_LANGUAGE {row['q']:.4f} "
                  f"(frozen Q root {q_bpb:.3f} bpb)")
 

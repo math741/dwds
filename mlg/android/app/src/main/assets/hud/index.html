@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>MLG ZERO-1T</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --void: #05070a; --panel: rgba(8, 18, 22, 0.72); --line: rgba(25, 227, 177, 0.28);
+    --teal: #19e3b1; --teal-dim: #0f8f72; --orange: #ff8a3d; --gold: #ffd166; --red: #ff4d5e;
+    --violet: #9d7bff; --text: #cffaf0; --muted: #6f9d93;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--void); color: var(--text); overflow: hidden;
+    font: 14px/1.45 "Roboto Mono", "DejaVu Sans Mono", monospace; -webkit-user-select: none; user-select: none; }
+  canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .scan { position: fixed; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(25,227,177,0.025) 0 1px, transparent 1px 3px); }
+  .frame { position: fixed; background: var(--panel); border: 1px solid var(--line); backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px); }
+  .frame::before, .frame::after { content: ""; position: absolute; width: 14px; height: 14px; border: 2px solid var(--teal); }
+  .frame::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; }
+  .frame::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; }
+  h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.22em; color: var(--teal); font-weight: 600; }
+  h2 small { color: var(--muted); letter-spacing: 0.08em; font-weight: 400; }
+
+  #top { top: 14px; left: 14px; right: 14px; height: 46px; display: flex; align-items: center; gap: 18px; padding: 0 18px; }
+  #logo { font-size: 17px; letter-spacing: 0.3em; color: #e8fff8; text-shadow: 0 0 12px rgba(25,227,177,0.8); white-space: nowrap; }
+  #logo b { color: var(--orange); text-shadow: 0 0 12px rgba(255,138,61,0.8); }
+  #phase { font-size: 11px; letter-spacing: 0.25em; color: var(--gold); border: 1px solid rgba(255,209,102,0.4); padding: 3px 10px; }
+  #topnote { flex: 1; color: var(--muted); font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #clock { color: var(--teal); font-size: 13px; letter-spacing: 0.1em; }
+  .tab { cursor: pointer; font-size: 11px; letter-spacing: 0.2em; padding: 4px 10px; border: 1px solid var(--line); color: var(--muted); }
+  .tab.on { color: var(--void); background: var(--teal); border-color: var(--teal); }
+
+  #talk { top: 74px; left: 14px; bottom: 96px; width: min(430px, 36vw); padding: 14px; display: flex; flex-direction: column; }
+  #log { flex: 1; overflow-y: auto; padding-right: 6px; scroll-behavior: smooth; -webkit-user-select: text; user-select: text; }
+  #log::-webkit-scrollbar { width: 4px; } #log::-webkit-scrollbar-thumb { background: var(--teal-dim); }
+  .msg { margin: 0 0 12px; padding: 9px 11px; border-left: 2px solid var(--teal); background: rgba(25,227,177,0.06); }
+  .msg.user { border-left-color: var(--orange); background: rgba(255,138,61,0.07); margin-left: 34px; }
+  .msg .who { font-size: 10px; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 3px; }
+  .msg .who .organ { color: var(--void); background: var(--teal); padding: 0 6px; margin-left: 6px; letter-spacing: 0.12em; }
+  .msg.user .who { color: var(--orange); }
+  .msg.note { border-left-color: var(--gold); background: rgba(255,209,102,0.05); color: #f3e3b0; font-size: 12px; }
+  .cursor { display: inline-block; width: 8px; height: 14px; background: var(--teal); vertical-align: -2px; animation: blink 0.9s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .evidence { margin: -4px 0 12px; padding: 7px 10px; font-size: 11px; color: #a9d8ff; border: 1px dashed rgba(157,123,255,0.5); }
+  .evidence b { color: var(--violet); letter-spacing: 0.12em; font-weight: 600; }
+
+  #bar { left: 14px; right: 14px; bottom: 14px; height: 68px; display: flex; align-items: center; gap: 12px; padding: 0 14px; }
+  #mic { width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--teal); background: rgba(25,227,177,0.1);
+    color: var(--teal); font-size: 22px; cursor: pointer; flex: none; box-shadow: 0 0 18px rgba(25,227,177,0.35); }
+  #mic.live { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 0 26px rgba(255,77,94,0.7); }
+  #input { flex: 1; height: 46px; background: rgba(0,0,0,0.45); border: 1px solid var(--line); color: var(--text);
+    font: inherit; font-size: 16px; padding: 0 14px; outline: none; -webkit-user-select: text; user-select: text; }
+  #input:focus { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal) inset; }
+  button.act { height: 46px; padding: 0 18px; background: transparent; border: 1px solid var(--teal); color: var(--teal);
+    font: inherit; letter-spacing: 0.18em; cursor: pointer; }
+  button.act:active { background: var(--teal); color: var(--void); }
+
+  #side { top: 74px; right: 14px; bottom: 96px; width: min(340px, 28vw); padding: 14px; overflow-y: auto; }
+  #side::-webkit-scrollbar { width: 4px; } #side::-webkit-scrollbar-thumb { background: var(--teal-dim); }
+  .block { margin-bottom: 16px; }
+  .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 2px 0; border-bottom: 1px solid rgba(25,227,177,0.07); }
+  .kv span:first-child { color: var(--muted); }
+  .kv span:last-child { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+  .lvl { font-size: 9px; letter-spacing: 0.1em; padding: 0 4px; margin-left: 4px; border: 1px solid currentColor; opacity: 0.8; }
+  .lvl.MEASURED { color: var(--teal); } .lvl.REPORTED { color: var(--orange); } .lvl.ASSUMED { color: var(--gold); }
+  .meter { height: 4px; background: rgba(25,227,177,0.12); margin-top: 6px; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--teal), var(--gold)); width: 0%; transition: width 0.4s; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-right: 6px; box-shadow: 0 0 8px currentColor; }
+  .dot.on { background: var(--teal); }
+  #routes .r { display: flex; align-items: center; gap: 8px; font-size: 11px; margin: 2px 0; }
+  #routes .r span { width: 74px; color: var(--muted); }
+  #routes .r i { height: 6px; background: var(--teal-dim); display: block; transition: width 0.3s; }
+  #routes .r.best span { color: var(--gold); } #routes .r.best i { background: var(--gold); }
+
+  #mindinfo { position: fixed; top: 78px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 0.16em;
+    color: var(--muted); display: none; text-align: center; }
+  #mindinfo b { color: var(--gold); }
+  #legend { position: fixed; bottom: 104px; left: 50%; transform: translateX(-50%); display: none; gap: 12px; font-size: 10px; letter-spacing: 0.1em; }
+  #legend span::before { content: "●"; margin-right: 4px; color: var(--c); }
+  #toast { position: fixed; top: 90px; left: 50%; transform: translateX(-50%); padding: 10px 20px; font-size: 13px; letter-spacing: 0.12em;
+    border: 1px solid var(--gold); color: var(--gold); background: rgba(30,22,4,0.85); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+  #toast.show { opacity: 1; }
+
+  #modal { position: fixed; inset: 0; background: rgba(2,4,6,0.82); display: none; align-items: center; justify-content: center; }
+  #modal .frame { position: relative; width: min(620px, 92vw); padding: 24px; }
+  #code { font-size: 34px; letter-spacing: 0.2em; color: var(--gold); text-align: center; margin: 14px 0; text-shadow: 0 0 16px rgba(255,209,102,0.6); -webkit-user-select: text; user-select: text; }
+  #modal p { color: var(--muted); font-size: 12px; margin: 6px 0; }
+  #modal input { width: 100%; height: 40px; background: rgba(0,0,0,0.5); border: 1px solid var(--line); color: var(--text); font: inherit; padding: 0 10px; margin: 6px 0 12px; letter-spacing: 0.15em; }
+  #memlist { max-height: 140px; overflow-y: auto; font-size: 12px; color: var(--text); }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div class="scan"></div>
+
+<div id="top" class="frame">
+  <div id="logo">MLG ZERO-1T <b>ΣΩ</b></div>
+  <div id="phase">DESPERTANDO</div>
+  <div id="topnote">acordando sem saber em que corpo estou</div>
+  <div class="tab on" data-view="core">NÚCLEO</div>
+  <div class="tab" data-view="mind">MENTE VIVA</div>
+  <div class="tab" id="opensettings">LIGAÇÃO</div>
+  <div id="clock">--:--</div>
+</div>
+
+<div id="talk" class="frame">
+  <h2>DIÁLOGO <small>· intenção → roteador → órgão</small></h2>
+  <div id="log"></div>
+</div>
+
+<div id="side" class="frame">
+  <div class="block"><h2>CORPO <small>· Quest</small></h2><div id="body"></div></div>
+  <div class="block"><h2>ROTEADOR</h2><div id="routes"></div></div>
+  <div class="block"><h2>ÓRGÃOS</h2><div id="organs"></div></div>
+  <div class="block"><h2>LABORATÓRIO <small>· Colab</small></h2><div id="lab"></div><div class="meter"><i id="labmeter"></i></div></div>
+  <div class="block"><h2>TRUST CORE</h2><div id="trust"></div></div>
+</div>
+
+<div id="mindinfo">MENTE VIVA · <b id="mindcount">0</b> objetos · <span id="mindstate">esperando o laboratório</span></div>
+<div id="legend">
+  <span style="--c:#ff8a3d">CORPO</span><span style="--c:#ffb648">TRAÇO</span><span style="--c:#4c8dff">GENOMA</span>
+  <span style="--c:#19e3b1">CÉREBRO</span><span style="--c:#9d7bff">AVALIAÇÃO</span><span style="--c:#ff4d5e">DECISÃO</span><span style="--c:#d36bff">SUÍTE</span>
+</div>
+<div id="toast"></div>
+
+<div id="bar" class="frame">
+  <button id="mic" title="falar">◉</button>
+  <input id="input" placeholder="fale com a MLG… (ou toque no microfone)" autocomplete="off">
+  <button class="act" id="send">ENVIAR</button>
+  <button class="act" id="mute">VOZ ON</button>
+</div>
+
+<div id="modal">
+  <div class="frame">
+    <h2>LIGAÇÃO COM O LABORATÓRIO <small>· uma MLG, dois corpos</small></h2>
+    <p>Coloque este código nos <b style="color:var(--text)">Secrets do Colab</b> com o nome <b style="color:var(--gold)">MLG_LINK</b>. Daí em diante toda execução do notebook encontra este Quest sozinha.</p>
+    <div id="code">····-····-····-····</div>
+    <p>Ou digite aqui o código que o Colab mostrou:</p>
+    <input id="newcode" placeholder="XXXX-XXXX-XXXX-XXXX">
+    <h2>MEMÓRIA PERSISTENTE</h2>
+    <div id="memlist"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+      <button class="act" id="savecode">LIGAR</button><button class="act" id="closemodal">FECHAR</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="hud.js"></script>
+</body>
+</html>

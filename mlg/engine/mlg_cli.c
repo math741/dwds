@@ -5,7 +5,9 @@
  *   mlg_cli bpb    brain.mlgb text.txt            bits per byte, scored like the lab
  *   mlg_cli say    brain.mlgb "U: oi\nM:" [temperature [utf8]]   generate after a prompt
  *   mlg_cli bench  brain.mlgb [threads]
+ *   mlg_cli index  passages.tsv index.mlgk [max_df]   build the retrieval index
  *   mlg_cli search index.mlgk "query" [k]
+ *   mlg_cli batch  index.mlgk k < queries          best k passage ids per query line
  *   mlg_cli route  router.mlgr "text"
  */
 #include <stdio.h>
@@ -103,6 +105,10 @@ int main(int argc, char **argv) {
         printf("threads %d  prefill %.3f ms/byte  decode %.3f ms/byte (%.0f bytes/s)\n",
                mlg_get_threads(), pre, dec, 1000.0 / dec);
         mlg_core_close(c);
+    } else if (!strcmp(cmd, "index") && argc >= 4) {
+        const int n = mlg_know_build(argv[2], argv[3], argc >= 5 ? (float)atof(argv[4]) : 0.05f, err, sizeof err);
+        printf("%s\n", err);
+        return n < 0;
     } else if (!strcmp(cmd, "search") && argc >= 4) {
         mlg_know *k = mlg_know_open(argv[2], err, sizeof err);
         if (!k) return fprintf(stderr, "%s\n", err), 1;
@@ -114,6 +120,23 @@ int main(int argc, char **argv) {
             const char *title = mlg_know_title(k, ids[i], &tl), *text = mlg_know_text(k, ids[i], &len);
             printf("[%.2f] %.*s | %.*s\n", sc[i], tl, title, len > 300 ? 300 : len, text);
         }
+        mlg_know_close(k);
+    } else if (!strcmp(cmd, "batch") && argc >= 4) {
+        mlg_know *k = mlg_know_open(argv[2], err, sizeof err);
+        if (!k) return fprintf(stderr, "%s\n", err), 1;
+        int top = atoi(argv[3]), ids[64];
+        float sc[64];
+        if (top < 1 || top > 64) top = 64;
+        char *line = NULL;
+        size_t cap = 0;
+        ssize_t len;
+        while ((len = getline(&line, &cap, stdin)) > 0) {
+            if (line[len - 1] == '\n') line[len - 1] = 0;
+            const int n = mlg_know_search(k, line, top, ids, sc);
+            for (int i = 0; i < n; i++) printf(i ? "\t%d" : "%d", ids[i]);
+            printf("\n");
+        }
+        free(line);
         mlg_know_close(k);
     } else if (!strcmp(cmd, "route") && argc >= 4) {
         mlg_router *r = mlg_router_open(argv[2], err, sizeof err);

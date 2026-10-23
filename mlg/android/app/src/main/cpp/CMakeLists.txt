@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(mlg C)
+
+# the same engine the desktop tool tests against PyTorch (mlg/engine)
+set(ENGINE ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../engine)
+add_library(mlg SHARED mlg_jni.c ${ENGINE}/mlg_core.c ${ENGINE}/mlg_know.c ${ENGINE}/mlg_router.c ${ENGINE}/mlg_text.c)
+target_include_directories(mlg PRIVATE ${ENGINE})
+# fast-math lets the dot products vectorize; infinities stay legal (used as masks)
+target_compile_options(mlg PRIVATE -O3 -ffast-math -fno-finite-math-only -fopenmp -D_POSIX_C_SOURCE=200809L)
+target_link_options(mlg PRIVATE -fopenmp -static-openmp)
+target_link_libraries(mlg m log)

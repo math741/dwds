@@ -48,6 +48,12 @@ def _flat(props):
     return out
 
 
+# properties a live viewer gets with each object (the graph keeps all of them)
+_SHOWN = {"name", "verdict", "stage", "reason", "value", "unit", "generation", "params", "active_params",
+          "dev_bpb", "bits_per_byte", "q_language", "d_model", "n_layers", "n_experts", "top_k", "ctx",
+          "dtype", "inherited", "lineage_seconds", "steps", "role", "bytes", "kind"}
+
+
 def _hash(obj):
     blob = json.dumps(obj, sort_keys=True, ensure_ascii=False, default=str)
     return hashlib.sha256(blob.encode()).hexdigest()
@@ -57,6 +63,7 @@ class Substrate:
     def __init__(self, graph, mode):
         self.g = graph
         self.mode = mode
+        self.observers = []  # f(kind, payload) for every object, relation and event written
         for label, key in (("Object", "id"), ("Event", "id"), ("Event", "seq")):
             try:
                 self.g.query(f"CREATE INDEX FOR (n:{label}) ON (n.{key})")
@@ -83,6 +90,10 @@ class Substrate:
             id=id_, props=body, type=type_, origin=origin, ep=epistemic,
             hash=content_hash, now=time.time(),
         )
+        if self.observers:
+            seen = {k: v for k, v in body.items() if k in _SHOWN}
+            for f in self.observers:
+                f("obj", {"id": id_, "type": type_, "ep": epistemic, **seen})
         return rows[0][0]
 
     def link(self, src, rel, dst, **props):
@@ -94,6 +105,8 @@ class Substrate:
         )
         if not rows or rows[0][0] == 0:
             raise KeyError(f"link {src} -[{rel}]-> {dst}: endpoint missing")
+        for f in self.observers:
+            f("link", {"a": src, "r": rel, "b": dst, **({"mode": props["mode"]} if "mode" in props else {})})
 
     # ---- EVENT-SOURCED INTELLIGENCE (X) --------------------------------
     def event(self, kind, about=None, /, **detail):
@@ -121,6 +134,8 @@ class Substrate:
                 e=ev, o=about,
             )
         self.head = h
+        for f in self.observers:
+            f("ev", {"seq": self.seq, "kind": kind, "about": about, "hash": h[:16]})
         return ev
 
     def verify_events(self, anchor=None):
