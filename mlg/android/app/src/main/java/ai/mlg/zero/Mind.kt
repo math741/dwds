@@ -76,10 +76,10 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         measure("memory_free", mi.availMem, "B", "MEASURED")
         senseBody()
 
-        link = Link(code, ::fromLab) { state ->
+        link = Link(code, ::fromLab, { state ->
             emit("link", JSONObject().put("state", state).put("broker", link?.broker ?: ""))
             if (state == "online") hello()
-        }.also { it.start() }
+        }).also { it.start() }
 
         emit("phase", JSONObject().put("v", "organs"))
         runCatching { if (brains.update()) note("cérebros novos instalados") }
@@ -311,10 +311,10 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         code = c.chunked(4).joinToString("-")
         prefs.edit().putString("code", code).apply()
         link?.stop()
-        link = Link(code, ::fromLab) { state ->
+        link = Link(code, ::fromLab, { state ->
             emit("link", JSONObject().put("state", state).put("broker", link?.broker ?: ""))
             if (state == "online") hello()
-        }.also { it.start() }
+        }).also { it.start() }
     }
 
     fun close() {

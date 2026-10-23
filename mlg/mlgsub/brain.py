@@ -344,6 +344,7 @@ class Corpus:
         self.own_bytes = min(own, len(train))
         if max_train_bytes:
             train = train[:max_train_bytes]
+            self.own_bytes = min(self.own_bytes, len(train))
         self.removed_lines = removed
         to = lambda b: torch.frombuffer(bytearray(b), dtype=torch.uint8).to(device)
         self.train, self.dev = to(train), to(dev)

@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.OutputStream
 import java.net.InetSocketAddress
+import java.net.Socket
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -18,9 +19,12 @@ import javax.net.ssl.SSLSocketFactory
  * derived from the pairing code, topics hashed from it. Only what the MLG
  * needs of MQTT: connect, subscribe, publish at QoS 0, ping.
  */
-class Link(code: String, private val onMessage: (String, JSONObject) -> Unit, private val onState: (String) -> Unit) {
+class Link(code: String, private val onMessage: (String, JSONObject) -> Unit, private val onState: (String) -> Unit,
+           private val brokers: List<Triple<String, Int, Boolean>> = BROKERS) {
     companion object {
-        val BROKERS = listOf("broker.emqx.io" to 8883, "broker.hivemq.com" to 8883, "test.mosquitto.org" to 8886)
+        /** host, port, TLS: the same list, in the same order, as mlgsub/link.py */
+        val BROKERS = listOf(Triple("broker.emqx.io", 8883, true), Triple("broker.hivemq.com", 8883, true),
+            Triple("test.mosquitto.org", 8886, true))
         const val ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
         fun newCode(): String {
@@ -71,11 +75,11 @@ class Link(code: String, private val onMessage: (String, JSONObject) -> Unit, pr
     private fun loop() {
         var attempt = 0
         while (running) {
-            for ((host, port) in BROKERS) {
+            for ((host, port, tls) in brokers) {
                 if (!running) return
                 wasOnline = false
                 try {
-                    session(host, port)
+                    session(host, port, tls)
                 } catch (e: Exception) {
                     connected = false
                     onState("offline")
@@ -86,8 +90,9 @@ class Link(code: String, private val onMessage: (String, JSONObject) -> Unit, pr
         }
     }
 
-    private fun session(host: String, port: Int) {
-        val sock = SSLSocketFactory.getDefault().createSocket().apply { connect(InetSocketAddress(host, port), 8000); soTimeout = 45_000 }
+    private fun session(host: String, port: Int, tls: Boolean) {
+        val plain = Socket().apply { connect(InetSocketAddress(host, port), 8000); soTimeout = 45_000 }
+        val sock = if (tls) (SSLSocketFactory.getDefault() as SSLSocketFactory).createSocket(plain, host, port, true) else plain
         sock.use { s ->
             val o = s.getOutputStream()
             val inp = DataInputStream(s.getInputStream().buffered())

@@ -61,3 +61,9 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 }
+
+dependencies {
+    // JVM tests only: org.json is a stub outside a device
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
+}
