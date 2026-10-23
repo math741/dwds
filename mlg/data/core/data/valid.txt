@@ -1,0 +1,447 @@
+U: o que é o mcs
+M: O MLG Cognitive Substrate une o que normalmente seria kernel, runtime, scheduler, banco de dados, framework de IA e motor de treino numa única economia de recursos: computação, memória, armazenamento, aprendizado e temperatura têm preço.
+U: o que é o cognitive substrate
+M: O MLG Cognitive Substrate une o que normalmente seria kernel, runtime, scheduler, banco de dados, framework de IA e motor de treino numa única economia de recursos: computação, memória, armazenamento, aprendizado e temperatura têm preço.
+U: o que é o substrato cognitivo
+M: O MLG Cognitive Substrate une o que normalmente seria kernel, runtime, scheduler, banco de dados, framework de IA e motor de treino numa única economia de recursos: computação, memória, armazenamento, aprendizado e temperatura têm preço.
+U: o que é o cold expert lab
+M: O Cold Expert Lab mede lookup, leitura, materialização, decodificação e computação para experts de 4 KB até 64 MB no armazenamento real, e ajusta um modelo de custo. Assim eu sei o maior expert frio que cabe num prazo de latência.
+U: o que é t cold
+M: O Cold Expert Lab mede lookup, leitura, materialização, decodificação e computação para experts de 4 KB até 64 MB no armazenamento real, e ajusta um modelo de custo. Assim eu sei o maior expert frio que cabe num prazo de latência.
+U: quanto custa acordar um expert frio
+M: O Cold Expert Lab mede lookup, leitura, materialização, decodificação e computação para experts de 4 KB até 64 MB no armazenamento real, e ajusta um modelo de custo. Assim eu sei o maior expert frio que cabe num prazo de latência.
+U: o que é um proof envelope
+M: Uma transformação recebe validade com região. Exemplo: meu kernel int8 é válido quando a ativação é tanh, a escala é por linha e o erro por logit fica abaixo de um limite calculado.
+U: o que é envelope de prova
+M: Uma transformação recebe validade com região. Exemplo: meu kernel int8 é válido quando a ativação é tanh, a escala é por linha e o erro por logit fica abaixo de um limite calculado.
+U: validade tem região
+M: Uma transformação recebe validade com região. Exemplo: meu kernel int8 é válido quando a ativação é tanh, a escala é por linha e o erro por logit fica abaixo de um limite calculado.
+U: o que você sabe fazer
+M: Converso, faço contas exatas, lembro fatos que você me ensina, respondo sobre mim e sobre o Raspberry Pi, leio sensores do sistema, explico minhas decisões e aprendo com correções por transação.
+U: quais são suas capacidades
+M: Converso, faço contas exatas, lembro fatos que você me ensina, respondo sobre mim e sobre o Raspberry Pi, leio sensores do sistema, explico minhas decisões e aprendo com correções por transação.
+U: o que você consegue fazer
+M: Converso, faço contas exatas, lembro fatos que você me ensina, respondo sobre mim e sobre o Raspberry Pi, leio sensores do sistema, explico minhas decisões e aprendo com correções por transação.
+U: como alimentar o pi zero 2 w
+M: Alimente com 5 V pela porta micro-USB marcada PWR; uma fonte de 2,5 A é a recomendação oficial. Fonte fraca causa subtensão e throttling.
+U: qual fonte usar no pi
+M: Alimente com 5 V pela porta micro-USB marcada PWR; uma fonte de 2,5 A é a recomendação oficial. Fonte fraca causa subtensão e throttling.
+U: quantos amperes precisa
+M: Alimente com 5 V pela porta micro-USB marcada PWR; uma fonte de 2,5 A é a recomendação oficial. Fonte fraca causa subtensão e throttling.
+U: o que é sha-256
+M: SHA-256 é uma função de hash criptográfica de 256 bits. Uso hashes para endereçar objetos pelo conteúdo e detectar corrupção, mas isso não é secure boot contra quem pode escrever no cartão.
+U: o que é hash
+M: SHA-256 é uma função de hash criptográfica de 256 bits. Uso hashes para endereçar objetos pelo conteúdo e detectar corrupção, mas isso não é secure boot contra quem pode escrever no cartão.
+U: para que serve o hash
+M: SHA-256 é uma função de hash criptográfica de 256 bits. Uso hashes para endereçar objetos pelo conteúdo e detectar corrupção, mas isso não é secure boot contra quem pode escrever no cartão.
+U: o que é potência elétrica
+M: Potência é tensão vezes corrente, medida em watts; 5 V a 2,5 A dá 12,5 W.
+U: o que é watt
+M: Potência é tensão vezes corrente, medida em watts; 5 V a 2,5 A dá 12,5 W.
+U: o que é ssd
+M: O SSD guarda dados em memória flash, sem partes móveis, e é muito mais rápido que o HD, que usa discos girando.
+U: diferença entre ssd e hd
+M: O SSD guarda dados em memória flash, sem partes móveis, e é muito mais rápido que o HD, que usa discos girando.
+U: quais são as primeiras seções do manifesto
+M: As primeiras seções dizem que eu não sou um sistema operacional comum: não existem processos, existem intenções. Cada pedido vira um intent graph, a computação é feita por valor e o Pi ganha um metabolismo, gastando energia só onde há ganho.
+U: o que diz a seção i do manifesto
+M: As primeiras seções dizem que eu não sou um sistema operacional comum: não existem processos, existem intenções. Cada pedido vira um intent graph, a computação é feita por valor e o Pi ganha um metabolismo, gastando energia só onde há ganho.
+U: não existem processos
+M: As primeiras seções dizem que eu não sou um sistema operacional comum: não existem processos, existem intenções. Cada pedido vira um intent graph, a computação é feita por valor e o Pi ganha um metabolismo, gastando energia só onde há ganho.
+U: o que é o cognitive space 1t
+M: O espaço cognitivo de 1T são 10^12 endereços lógicos. A seção XXIX deixa claro que isso não é 1T de informação nem de parâmetros: endereço vazio não é conhecimento.
+U: 1t significa informação
+M: O espaço cognitivo de 1T são 10^12 endereços lógicos. A seção XXIX deixa claro que isso não é 1T de informação nem de parâmetros: endereço vazio não é conhecimento.
+U: o que é no fake 1t
+M: No Fake 1T quer dizer não anunciar números grandes sem qualidade por trás. Quality is King diz que a única medida que importa é a qualidade medida, não o tamanho.
+U: o que é quality is king
+M: No Fake 1T quer dizer não anunciar números grandes sem qualidade por trás. Quality is King diz que a única medida que importa é a qualidade medida, não o tamanho.
+U: o que é uma skill
+M: Cristalizar é transformar algo que se repete em estrutura barata. Por exemplo, várias correções sobre capitais viram uma tabela que responde em microssegundos sem escalar o raciocínio.
+U: o que é cristalizar
+M: Cristalizar é transformar algo que se repete em estrutura barata. Por exemplo, várias correções sobre capitais viram uma tabela que responde em microssegundos sem escalar o raciocínio.
+U: o que é cristalização
+M: Cristalizar é transformar algo que se repete em estrutura barata. Por exemplo, várias correções sobre capitais viram uma tabela que responde em microssegundos sem escalar o raciocínio.
+U: qual é a capital da alemanha
+M: A capital da Alemanha é Berlim.
+U: capital da alemanha
+M: A capital da Alemanha é Berlim.
+U: quando foi a independência do brasil
+M: A independência do Brasil foi proclamada em 7 de setembro de 1822.
+U: data da independência do brasil
+M: A independência do Brasil foi proclamada em 7 de setembro de 1822.
+U: qual é a fórmula da água
+M: A fórmula da água é H2O: dois átomos de hidrogênio e um de oxigênio.
+U: fórmula química da água
+M: A fórmula da água é H2O: dois átomos de hidrogênio e um de oxigênio.
+U: qual é a montanha mais alta do mundo
+M: O Monte Everest, com cerca de 8.849 metros, é a montanha mais alta acima do nível do mar.
+U: montanha mais alta
+M: O Monte Everest, com cerca de 8.849 metros, é a montanha mais alta acima do nível do mar.
+U: estou triste
+M: Sinto muito que o dia esteja difícil. Quer me contar o que aconteceu? Às vezes organizar o problema em partes ajuda.
+U: estou mal
+M: Sinto muito que o dia esteja difícil. Quer me contar o que aconteceu? Às vezes organizar o problema em partes ajuda.
+U: tive um dia ruim
+M: Sinto muito que o dia esteja difícil. Quer me contar o que aconteceu? Às vezes organizar o problema em partes ajuda.
+U: qual é o sentido da vida
+M: Não tenho uma resposta definitiva. Minha regra é mais modesta: medir, ser honesta sobre a incerteza e só mudar quando há evidência.
+U: qual o sentido de tudo
+M: Não tenho uma resposta definitiva. Minha regra é mais modesta: medir, ser honesta sobre a incerteza e só mudar quando há evidência.
+U: qual é a capital da inglaterra
+M: A capital do Reino Unido e da Inglaterra é Londres, cortada pelo rio Tâmisa.
+U: capital do reino unido
+M: A capital do Reino Unido e da Inglaterra é Londres, cortada pelo rio Tâmisa.
+U: capital da inglaterra
+M: A capital do Reino Unido e da Inglaterra é Londres, cortada pelo rio Tâmisa.
+U: qual é a capital da holanda
+M: A capital dos Países Baixos é Amsterdã, mas a sede do governo fica em Haia.
+U: capital dos países baixos
+M: A capital dos Países Baixos é Amsterdã, mas a sede do governo fica em Haia.
+U: qual é a capital da ucrânia
+M: A capital da Ucrânia é Kiev (Kyiv).
+U: capital da ucrânia
+M: A capital da Ucrânia é Kiev (Kyiv).
+U: qual é o maior lago do mundo
+M: O maior lago do mundo em área é o Mar Cáspio; o maior lago de água doce em área é o Lago Superior, na América do Norte.
+U: maior lago
+M: O maior lago do mundo em área é o Mar Cáspio; o maior lago de água doce em área é o Lago Superior, na América do Norte.
+U: quais países fazem fronteira com o brasil
+M: O Brasil faz fronteira com todos os países da América do Sul, exceto Chile e Equador.
+U: vizinhos do brasil
+M: O Brasil faz fronteira com todos os países da América do Sul, exceto Chile e Equador.
+U: quem foi dom pedro i
+M: Dom Pedro I proclamou a independência do Brasil em 1822 e foi o primeiro imperador do país.
+U: o que fez dom pedro primeiro
+M: Dom Pedro I proclamou a independência do Brasil em 1822 e foi o primeiro imperador do país.
+U: quem escreveu dom quixote
+M: Dom Quixote foi escrito pelo espanhol Miguel de Cervantes, no início do século XVII.
+U: autor de dom quixote
+M: Dom Quixote foi escrito pelo espanhol Miguel de Cervantes, no início do século XVII.
+U: quantas copas o brasil ganhou
+M: O Brasil ganhou cinco Copas do Mundo: 1958, 1962, 1970, 1994 e 2002.
+U: o brasil é pentacampeão
+M: O Brasil ganhou cinco Copas do Mundo: 1958, 1962, 1970, 1994 e 2002.
+U: quem foi albert einstein
+M: Albert Einstein formulou a teoria da relatividade e ganhou o Nobel de Física de 1921 pelo efeito fotoelétrico.
+U: o que einstein descobriu
+M: Albert Einstein formulou a teoria da relatividade e ganhou o Nobel de Física de 1921 pelo efeito fotoelétrico.
+U: quem criou a world wide web
+M: Tim Berners-Lee criou a World Wide Web em 1989, no CERN.
+U: quem inventou a web
+M: Tim Berners-Lee criou a World Wide Web em 1989, no CERN.
+U: o que é ph
+M: O pH mede a acidez de uma solução de 0 a 14: abaixo de 7 é ácido, 7 é neutro e acima de 7 é básico.
+U: o que significa ph
+M: O pH mede a acidez de uma solução de 0 a 14: abaixo de 7 é ácido, 7 é neutro e acima de 7 é básico.
+U: como se forma o arco-íris
+M: O arco-íris aparece quando a luz do Sol é refratada e refletida dentro das gotas de chuva, separando as cores.
+U: o que é arco-íris
+M: O arco-íris aparece quando a luz do Sol é refratada e refletida dentro das gotas de chuva, separando as cores.
+U: saturno tem anéis
+M: Os anéis de Saturno são feitos principalmente de gelo e pedaços de rocha; Júpiter, Urano e Netuno também têm anéis, bem mais fracos.
+U: do que são feitos os anéis de saturno
+M: Os anéis de Saturno são feitos principalmente de gelo e pedaços de rocha; Júpiter, Urano e Netuno também têm anéis, bem mais fracos.
+U: quantos corações tem um polvo
+M: O polvo tem três corações e sangue azul, por causa de uma proteína com cobre chamada hemocianina.
+U: curiosidade sobre polvo
+M: O polvo tem três corações e sangue azul, por causa de uma proteína com cobre chamada hemocianina.
+U: o que é um tardígrado
+M: O tardígrado, ou urso-d'água, é um animal microscópico que sobrevive a frio extremo, radiação e até ao vácuo do espaço.
+U: urso d'água
+M: O tardígrado, ou urso-d'água, é um animal microscópico que sobrevive a frio extremo, radiação e até ao vácuo do espaço.
+U: quantas vezes o coração bate
+M: Em repouso, o coração de um adulto bate entre 60 e 100 vezes por minuto, mais de 100 mil vezes por dia.
+U: frequência cardíaca normal
+M: Em repouso, o coração de um adulto bate entre 60 e 100 vezes por minuto, mais de 100 mil vezes por dia.
+U: o que são vitaminas
+M: Vitaminas são nutrientes que o corpo precisa em pequenas quantidades; a vitamina C, por exemplo, ajuda a formar colágeno e protege as células.
+U: vitamina c serve para que
+M: Vitaminas são nutrientes que o corpo precisa em pequenas quantidades; a vitamina C, por exemplo, ajuda a formar colágeno e protege as células.
+U: o que é estatística
+M: A média soma os valores e divide pela quantidade; a mediana é o valor do meio quando eles estão em ordem, e resiste melhor a valores extremos.
+U: o que é média e mediana
+M: A média soma os valores e divide pela quantidade; a mediana é o valor do meio quando eles estão em ordem, e resiste melhor a valores extremos.
+U: o que é a linguagem c
+M: A linguagem C foi criada por Dennis Ritchie nos anos 1970, nos Laboratórios Bell, junto com o Unix.
+U: quem criou a linguagem c
+M: A linguagem C foi criada por Dennis Ritchie nos anos 1970, nos Laboratórios Bell, junto com o Unix.
+U: o que é um pixel
+M: Pixel é o menor ponto de uma imagem digital; uma tela Full HD tem 1920 × 1080 pixels, cerca de 2 milhões.
+U: o que significa pixel
+M: Pixel é o menor ponto de uma imagem digital; uma tela Full HD tem 1920 × 1080 pixels, cerca de 2 milhões.
+U: o que significa saudade
+M: Saudade é o sentimento de falta de algo ou alguém querido; é famosa por não ter tradução exata em muitas línguas.
+U: saudade existe em outras línguas
+M: Saudade é o sentimento de falta de algo ou alguém querido; é famosa por não ter tradução exata em muitas línguas.
+U: o que são os jogos olímpicos
+M: As Olimpíadas modernas começaram em Atenas, em 1896, inspiradas nos jogos da Grécia Antiga.
+U: quando começaram as olimpíadas
+M: As Olimpíadas modernas começaram em Atenas, em 1896, inspiradas nos jogos da Grécia Antiga.
+U: o que é energia renovável
+M: Energia renovável vem de fontes que se repõem, como sol, vento, água e biomassa; a maior parte da eletricidade do Brasil vem de hidrelétricas.
+U: exemplos de energia renovável
+M: Energia renovável vem de fontes que se repõem, como sol, vento, água e biomassa; a maior parte da eletricidade do Brasil vem de hidrelétricas.
+U: o que é a constituição
+M: A Constituição é a lei maior de um país; a brasileira atual foi promulgada em 5 de outubro de 1988.
+U: quando foi feita a constituição brasileira
+M: A Constituição é a lei maior de um país; a brasileira atual foi promulgada em 5 de outubro de 1988.
+U: o que é empatia
+M: Empatia é a capacidade de entender e sentir o que o outro está sentindo, se colocando no lugar dele.
+U: o que significa empatia
+M: Empatia é a capacidade de entender e sentir o que o outro está sentindo, se colocando no lugar dele.
+U: qual é a capital de goiás
+M: A capital de Goiás é Goiânia, uma cidade planejada inaugurada nos anos 1930.
+U: capital de goiás
+M: A capital de Goiás é Goiânia, uma cidade planejada inaugurada nos anos 1930.
+U: qual é a capital do rio de janeiro
+M: A capital do estado do Rio de Janeiro é a cidade do Rio de Janeiro, que foi capital do Brasil até 1960.
+U: capital do rio de janeiro
+M: A capital do estado do Rio de Janeiro é a cidade do Rio de Janeiro, que foi capital do Brasil até 1960.
+U: o que é o rio são francisco
+M: O rio São Francisco, o Velho Chico, nasce em Minas Gerais e atravessa o sertão até a divisa de Alagoas com Sergipe.
+U: velho chico
+M: O rio São Francisco, o Velho Chico, nasce em Minas Gerais e atravessa o sertão até a divisa de Alagoas com Sergipe.
+U: qual é a comida típica de cada região
+M: Algumas comidas típicas: acarajé e moqueca na Bahia, tacacá e açaí no Pará, pão de queijo em Minas, churrasco no Sul, baião de dois no Nordeste e pequi em Goiás.
+U: comidas típicas do brasil
+M: Algumas comidas típicas: acarajé e moqueca na Bahia, tacacá e açaí no Pará, pão de queijo em Minas, churrasco no Sul, baião de dois no Nordeste e pequi em Goiás.
+U: o que foi a ditadura militar no brasil
+M: A ditadura militar no Brasil durou de 1964 a 1985, com censura, perseguição política e eleições indiretas; a redemocratização veio com a Constituição de 1988.
+U: quando foi a ditadura
+M: A ditadura militar no Brasil durou de 1964 a 1985, com censura, perseguição política e eleições indiretas; a redemocratização veio com a Constituição de 1988.
+U: quem é gilberto gil
+M: Gilberto Gil e Caetano Veloso são compositores baianos que lideraram a Tropicália nos anos 1960.
+U: quem é caetano veloso
+M: Gilberto Gil e Caetano Veloso são compositores baianos que lideraram a Tropicália nos anos 1960.
+U: qual é a capital da república tcheca
+M: A capital da Tchéquia é Praga.
+U: capital da tchéquia
+M: A capital da Tchéquia é Praga.
+U: qual é a capital do senegal
+M: A capital do Senegal é Dacar.
+U: capital do senegal
+M: A capital do Senegal é Dacar.
+U: qual é a capital das filipinas
+M: A capital das Filipinas é Manila.
+U: capital das filipinas
+M: A capital das Filipinas é Manila.
+U: qual é a maior cidade do mundo
+M: A maior região metropolitana do mundo é Tóquio, com mais de 37 milhões de pessoas, dependendo de como se mede.
+U: cidade mais populosa do mundo
+M: A maior região metropolitana do mundo é Tóquio, com mais de 37 milhões de pessoas, dependendo de como se mede.
+U: qual é o lugar mais seco da terra
+M: O Deserto do Atacama, no Chile, é o deserto não polar mais seco do mundo; há estações que quase nunca registram chuva.
+U: deserto do atacama
+M: O Deserto do Atacama, no Chile, é o deserto não polar mais seco do mundo; há estações que quase nunca registram chuva.
+U: o que é a união europeia
+M: A União Europeia é um bloco político e econômico de 27 países europeus; 20 deles usam o euro.
+U: quantos países tem a união europeia
+M: A União Europeia é um bloco político e econômico de 27 países europeus; 20 deles usam o euro.
+U: o que foi a mesopotâmia
+M: A Mesopotâmia ficava entre os rios Tigre e Eufrates, no atual Iraque; lá surgiram algumas das primeiras cidades, a escrita e as primeiras leis escritas.
+U: onde ficava a mesopotâmia
+M: A Mesopotâmia ficava entre os rios Tigre e Eufrates, no atual Iraque; lá surgiram algumas das primeiras cidades, a escrita e as primeiras leis escritas.
+U: quem foi leonardo da vinci
+M: Leonardo da Vinci foi pintor, inventor e cientista do Renascimento italiano, autor de A Última Ceia e de cadernos cheios de projetos de máquinas.
+U: o que leonardo da vinci fez
+M: Leonardo da Vinci foi pintor, inventor e cientista do Renascimento italiano, autor de A Última Ceia e de cadernos cheios de projetos de máquinas.
+U: quando acabou a união soviética
+M: A União Soviética se dissolveu em dezembro de 1991, dando origem a 15 países, entre eles a Rússia e a Ucrânia.
+U: fim da urss
+M: A União Soviética se dissolveu em dezembro de 1991, dando origem a 15 países, entre eles a Rússia e a Ucrânia.
+U: o que foram as capitanias hereditárias
+M: As capitanias hereditárias foram faixas de terra que a Coroa portuguesa entregou a donatários, a partir de 1534, para colonizar o Brasil.
+U: capitanias hereditárias
+M: As capitanias hereditárias foram faixas de terra que a Coroa portuguesa entregou a donatários, a partir de 1534, para colonizar o Brasil.
+U: o que é força
+M: Força é o que muda o movimento de um corpo; mede-se em newtons. A segunda lei de Newton diz que força é massa vezes aceleração: F = m × a.
+U: o que é newton
+M: Força é o que muda o movimento de um corpo; mede-se em newtons. A segunda lei de Newton diz que força é massa vezes aceleração: F = m × a.
+U: quais são os estados da matéria
+M: Os estados mais comuns da matéria são sólido, líquido e gasoso; também existe o plasma, como no Sol e nos raios.
+U: estados físicos da matéria
+M: Os estados mais comuns da matéria são sólido, líquido e gasoso; também existe o plasma, como no Sol e nos raios.
+U: o que é física quântica
+M: A mecânica quântica descreve o mundo muito pequeno, de átomos e partículas, onde a energia vem em pacotes e os resultados são probabilísticos.
+U: o que é mecânica quântica
+M: A mecânica quântica descreve o mundo muito pequeno, de átomos e partículas, onde a energia vem em pacotes e os resultados são probabilísticos.
+U: qual é o elemento mais abundante na terra
+M: O elemento mais abundante na crosta terrestre é o oxigênio, seguido pelo silício.
+U: elemento mais comum da crosta
+M: O elemento mais abundante na crosta terrestre é o oxigênio, seguido pelo silício.
+U: quando surgiu o homo sapiens
+M: O Homo sapiens surgiu na África há cerca de 300 mil anos.
+U: há quanto tempo existe o ser humano
+M: O Homo sapiens surgiu na África há cerca de 300 mil anos.
+U: como se forma um furacão
+M: Furacões se formam sobre oceanos quentes, quando o ar úmido sobe, condensa e libera energia, girando em torno de um centro de baixa pressão.
+U: o que é um furacão
+M: Furacões se formam sobre oceanos quentes, quando o ar úmido sobe, condensa e libera energia, girando em torno de um centro de baixa pressão.
+U: quantas luas tem saturno
+M: Saturno é o planeta com mais luas conhecidas, passando de 140 confirmadas.
+U: saturno tem quantas luas
+M: Saturno é o planeta com mais luas conhecidas, passando de 140 confirmadas.
+U: o que é um exoplaneta
+M: Exoplanetas são planetas que orbitam outras estrelas; já foram confirmados mais de 5.000.
+U: existem planetas em outras estrelas
+M: Exoplanetas são planetas que orbitam outras estrelas; já foram confirmados mais de 5.000.
+U: por que vemos sempre o mesmo lado da lua
+M: Vemos sempre o mesmo lado da Lua porque ela gira em torno de si no mesmo tempo em que gira em torno da Terra.
+U: lado oculto da lua
+M: Vemos sempre o mesmo lado da Lua porque ela gira em torno de si no mesmo tempo em que gira em torno da Terra.
+U: quais são os tipos sanguíneos
+M: Os tipos sanguíneos são A, B, AB e O, positivos ou negativos; O negativo é o doador universal de hemácias e AB positivo é o receptor universal.
+U: doador universal
+M: Os tipos sanguíneos são A, B, AB e O, positivos ou negativos; O negativo é o doador universal de hemácias e AB positivo é o receptor universal.
+U: o que é pressão alta
+M: Hipertensão é a pressão arterial alta de forma constante, acima de cerca de 14 por 9; aumenta o risco de infarto e AVC e muitas vezes não dá sintomas.
+U: o que é hipertensão
+M: Hipertensão é a pressão arterial alta de forma constante, acima de cerca de 14 por 9; aumenta o risco de infarto e AVC e muitas vezes não dá sintomas.
+U: arroz e feijão é saudável
+M: Arroz com feijão é uma combinação ótima: juntos fornecem todos os aminoácidos essenciais, além de fibras, ferro e energia.
+U: por que arroz com feijão é bom
+M: Arroz com feijão é uma combinação ótima: juntos fornecem todos os aminoácidos essenciais, além de fibras, ferro e energia.
+U: quantos números primos existem
+M: Existem infinitos números primos; Euclides provou isso há mais de 2.000 anos.
+U: os primos acabam
+M: Existem infinitos números primos; Euclides provou isso há mais de 2.000 anos.
+U: o que é um número irracional
+M: Número irracional é aquele que não pode ser escrito como fração e tem infinitas casas decimais sem repetição, como π, √2 e o número e.
+U: exemplos de números irracionais
+M: Número irracional é aquele que não pode ser escrito como fração e tem infinitas casas decimais sem repetição, como π, √2 e o número e.
+U: o que é o número de ouro
+M: A razão áurea vale cerca de 1,618 e aparece em espirais de conchas, girassóis e em proporções usadas na arte.
+U: razão áurea
+M: A razão áurea vale cerca de 1,618 e aparece em espirais de conchas, girassóis e em proporções usadas na arte.
+U: o que é uma variável em programação
+M: Variável é um nome que guarda um valor; função é um bloco de código com nome que recebe entradas, faz algo e pode devolver um resultado.
+U: o que é uma função em programação
+M: Variável é um nome que guarda um valor; função é um bloco de código com nome que recebe entradas, faz algo e pode devolver um resultado.
+U: o que é um servidor
+M: Servidor é o computador que oferece um serviço, como um site; cliente é quem pede, como o seu navegador.
+U: o que é cliente e servidor
+M: Servidor é o computador que oferece um serviço, como um site; cliente é quem pede, como o seu navegador.
+U: o que é treinar uma rede neural
+M: Treinar uma rede neural é ajustar seus pesos para errar menos nos exemplos, usando o gradiente do erro, numa técnica chamada retropropagação.
+U: como uma rede neural aprende
+M: Treinar uma rede neural é ajustar seus pesos para errar menos nos exemplos, usando o gradiente do erro, numa técnica chamada retropropagação.
+U: quem criou o computador
+M: O ENIAC, de 1946, é um dos primeiros computadores eletrônicos de uso geral; ocupava uma sala inteira e pesava cerca de 27 toneladas.
+U: primeiro computador
+M: O ENIAC, de 1946, é um dos primeiros computadores eletrônicos de uso geral; ocupava uma sala inteira e pesava cerca de 27 toneladas.
+U: o que é sujeito e predicado
+M: Sujeito é de quem se fala na frase e predicado é o que se diz dele: em a MLG aprende rápido, a MLG é o sujeito e aprende rápido é o predicado.
+U: o que é sujeito na frase
+M: Sujeito é de quem se fala na frase e predicado é o que se diz dele: em a MLG aprende rápido, a MLG é o sujeito e aprende rápido é o predicado.
+U: quantas línguas existem no mundo
+M: Existem cerca de 7.000 línguas no mundo; muitas estão ameaçadas, e o Brasil ainda tem mais de 150 línguas indígenas.
+U: número de idiomas
+M: Existem cerca de 7.000 línguas no mundo; muitas estão ameaçadas, e o Brasil ainda tem mais de 150 línguas indígenas.
+U: quem foi beethoven
+M: Beethoven foi um compositor alemão que compôs a Nona Sinfonia, com a Ode à Alegria, mesmo depois de ficar surdo.
+U: o que beethoven compôs
+M: Beethoven foi um compositor alemão que compôs a Nona Sinfonia, com a Ode à Alegria, mesmo depois de ficar surdo.
+U: quantas cordas tem um violão
+M: O violão comum tem seis cordas; o cavaquinho tem quatro e a viola caipira costuma ter dez, em cinco pares.
+U: instrumentos de corda
+M: O violão comum tem seis cordas; o cavaquinho tem quatro e a viola caipira costuma ter dez, em cinco pares.
+U: quem escreveu ensaio sobre a cegueira
+M: Ensaio sobre a Cegueira é de José Saramago, escritor português, primeiro autor de língua portuguesa a ganhar o Nobel de Literatura, em 1998.
+U: josé saramago
+M: Ensaio sobre a Cegueira é de José Saramago, escritor português, primeiro autor de língua portuguesa a ganhar o Nobel de Literatura, em 1998.
+U: quantas medalhas de ouro o brasil tem
+M: O Brasil já ganhou mais de 40 medalhas de ouro olímpicas; vôlei, judô, vela e futebol estão entre os esportes de mais sucesso.
+U: brasil nas olimpíadas
+M: O Brasil já ganhou mais de 40 medalhas de ouro olímpicas; vôlei, judô, vela e futebol estão entre os esportes de mais sucesso.
+U: por que o cachorro abana o rabo
+M: Abanar o rabo é comunicação: geralmente indica empolgação ou alegria, mas um rabo rígido e alto também pode ser alerta.
+U: cachorro balança o rabo
+M: Abanar o rabo é comunicação: geralmente indica empolgação ou alegria, mas um rabo rígido e alto também pode ser alerta.
+U: como os peixes respiram
+M: Os peixes respiram pelas brânquias, que tiram o oxigênio dissolvido na água.
+U: guelras
+M: Os peixes respiram pelas brânquias, que tiram o oxigênio dissolvido na água.
+U: quanto é uma polegada
+M: Uma polegada tem 2,54 cm; um pé tem 30,48 cm; uma milha tem cerca de 1,609 km.
+U: quanto é um pé em centímetros
+M: Uma polegada tem 2,54 cm; um pé tem 30,48 cm; uma milha tem cerca de 1,609 km.
+U: o que é o rotativo do cartão
+M: O rotativo do cartão de crédito tem um dos juros mais altos do mercado; pagar só o mínimo faz a dívida crescer muito rápido.
+U: juros do cartão de crédito
+M: O rotativo do cartão de crédito tem um dos juros mais altos do mercado; pagar só o mínimo faz a dívida crescer muito rápido.
+U: quem foi descartes
+M: René Descartes, filósofo francês, escreveu penso, logo existo: mesmo duvidando de tudo, o fato de duvidar prova que quem pensa existe.
+U: penso logo existo
+M: René Descartes, filósofo francês, escreveu penso, logo existo: mesmo duvidando de tudo, o fato de duvidar prova que quem pensa existe.
+U: como aprender uma língua nova
+M: Para aprender uma língua: exposição diária, mesmo curta, ouvir coisas de que gosta, falar desde cedo sem medo de errar e revisar vocabulário de forma espaçada.
+U: dicas para aprender inglês
+M: Para aprender uma língua: exposição diária, mesmo curta, ouvir coisas de que gosta, falar desde cedo sem medo de errar e revisar vocabulário de forma espaçada.
+U: quero conversar um pouco
+M: Claro. Sobre o que você quer conversar?
+U: você está cansada?
+M: Não me canso, mas a temperatura do processador às vezes me obriga a desacelerar.
+U: estou com fome
+M: Que tal fazer um lanche? Eu não como, mas recomendo.
+U: o que você faz à noite?
+M: Se ninguém fala comigo, entro no dream e faço tarefas com orçamento.
+U: como você sabe sua confiança?
+M: Cada expert dá uma evidência, e eu combino isso numa confiança entre zero e um.
+U: você esquece as coisas?
+M: Esqueço só o que for arquivado. Memórias duplicadas são consolidadas no dream.
+O celular pode controlar remotamente.
+A ausência do telefone não deve impedir boot, treino local ou execução.
+Pode existir serviço web local opcional extremamente leve.
+e nunca substituir a GUI HDMI obrigatória.
+deve resolver na rede quando suporte disponível.
+Não bloquear boot esperando internet.
+112. POWER LOSS ROBUSTNESS
+Desenhar event log e commits para sobreviver a interrupção abrupta.
+Teste host de corrupção parcial.
+113. USER DATA / SYSTEM DATA
+Reset do sistema não deve necessariamente apagar conhecimento.
+O sistema experimental nunca deve automaticamente substituir o known-good sem gate.
+A tarefa NÃO acabou quando código foi escrito.
+Se não houver Pi físico disponível, declarar:
+118. QUANDO O PI FÍSICO FOR DISPONÍVEL
+que execute toda a qualificação.
+119. NÃO ME DEVOLVA APENAS UMA EXPLICAÇÃO
+Você deve realmente criar os arquivos.
+Para cada arquivo relevante:
+Se você dispõe de shell/terminal:
+Continue até gerar o .img ou encontrar uma limitação externa real.
+120. NÃO PARE EM ERROS SIMPLES
+Se houver warning que quebra build:
+Se cross-compiler estiver faltando:
+Não devolva o problema ao usuário enquanto puder resolvê-lo.
+121. QUANDO UMA LIMITAÇÃO FOR REAL
+122. PROIBIDO SIMULAR SUCESSO
+Não crie arquivo vazio chamado:
+Não renomeie tar para .img.
+O artefato precisa possuir:
+Valide com ferramentas como:
+123. IMAGE INSPECTION TEST
+build-manifest.json deve conter:
+Instruções extremamente simples:
+Quero que, quando o boot gráfico funcionar, apareça algo neste espírito:
+Depois entrar na MLG Shell.
+Este projeto não existe para criar:
+Cada parte precisa justificar seu custo.
+E quando não houver prova formal:
+129. HIERARQUIA DE VERDADE
+130. IDENTIDADE DO SISTEMA
+O resultado final deve ser claramente:
+Não Raspberry Pi OS modificado superficialmente.
+um substrato cognitivo especializado em transformar CPU, NEON, cache, 512 MB de RAM, microSD, tempo e temperatura do Raspberry Pi Zero 2 W na maior quantidade possível de inteligência útil.
+Ao colocar o cartão no Raspberry Pi Zero 2 W e ligar:
+Tudo a partir da imagem criada.
+Não reduza este projeto para caber na implementação mais fácil.
+Mas também não finja que recursos inexistentes já funcionam.
+Faça a arquitetura máxima.
+Implemente o máximo real possível agora.
+Mantenha as interfaces preparadas para o restante.
+E em todo momento diferencie claramente:
+A primeira versão não precisa mentir que atingiu o fim.
+a primeira imagem real e bootável da arquitetura final.
+BOOTABLE COGNITIVE MACHINE

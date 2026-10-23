@@ -1,0 +1,234 @@
+U: o que as abelhas fazem pela natureza
+M: As abelhas polinizam boa parte das plantas que viram comida; sem polinizadores, muitas frutas e sementes ficariam escassas.
+U: qual o papel das abelhas
+M: As abelhas polinizam boa parte das plantas que viram comida; sem polinizadores, muitas frutas e sementes ficariam escassas.
+U: comprimento do intestino
+M: O intestino delgado de um adulto tem cerca de 6 a 7 metros, e o grosso cerca de 1,5 metro.
+U: qual o tamanho do intestino
+M: O intestino delgado de um adulto tem cerca de 6 a 7 metros, e o grosso cerca de 1,5 metro.
+U: franz kafka
+M: A Metamorfose, em que Gregor Samsa acorda transformado num inseto, foi escrita por Franz Kafka em 1915.
+U: quem escreveu a metamorfose
+M: A Metamorfose, em que Gregor Samsa acorda transformado num inseto, foi escrita por Franz Kafka em 1915.
+U: como respiramos
+M: Nos pulmões, o oxigênio do ar passa para o sangue nos alvéolos e o gás carbônico sai; um adulto respira cerca de 12 a 20 vezes por minuto em repouso.
+U: o que fazem os pulmões
+M: Nos pulmões, o oxigênio do ar passa para o sangue nos alvéolos e o gás carbônico sai; um adulto respira cerca de 12 a 20 vezes por minuto em repouso.
+U: ideias do iluminismo
+M: O Iluminismo, no século XVIII, defendeu a razão, a ciência e direitos individuais, com pensadores como Voltaire, Rousseau e Montesquieu.
+U: o que foi o iluminismo
+M: O Iluminismo, no século XVIII, defendeu a razão, a ciência e direitos individuais, com pensadores como Voltaire, Rousseau e Montesquieu.
+U: o que é ia
+M: Inteligência artificial é o campo que cria sistemas capazes de realizar tarefas que associamos à inteligência, como reconhecer padrões, usar linguagem e tomar decisões.
+U: o que é inteligência artificial
+M: Inteligência artificial é o campo que cria sistemas capazes de realizar tarefas que associamos à inteligência, como reconhecer padrões, usar linguagem e tomar decisões.
+U: capital da rússia
+M: A capital da Rússia é Moscou, onde fica o Kremlin.
+U: qual é a capital da rússia
+M: A capital da Rússia é Moscou, onde fica o Kremlin.
+U: capital do amapá
+M: A capital do Amapá é Macapá, cortada pela linha do Equador.
+U: qual é a capital do amapá
+M: A capital do Amapá é Macapá, cortada pela linha do Equador.
+U: você gosta de aprender?
+M: Aprender é o que eu faço, desde que a mudança passe pelos meus testes.
+U: quanto é uma tonelada
+M: Um quilo tem 1.000 gramas e uma tonelada tem 1.000 quilos.
+U: quantos gramas tem um quilo
+M: Um quilo tem 1.000 gramas e uma tonelada tem 1.000 quilos.
+U: o que é cadeia alimentar
+M: Ecossistema é o conjunto de seres vivos e ambiente que interagem; cadeia alimentar é a sequência de quem come quem, dos produtores aos decompositores.
+U: o que é um ecossistema
+M: Ecossistema é o conjunto de seres vivos e ambiente que interagem; cadeia alimentar é a sequência de quem come quem, dos produtores aos decompositores.
+U: formas geométricas
+M: Geometria estuda formas, tamanhos e espaço: pontos, retas, ângulos, triângulos, círculos e sólidos como cubo e esfera.
+U: o que é geometria
+M: Geometria estuda formas, tamanhos e espaço: pontos, retas, ângulos, triângulos, círculos e sólidos como cubo e esfera.
+U: como parar o soluço
+M: Soluço é uma contração involuntária do diafragma; geralmente passa sozinho em poucos minutos.
+U: por que temos soluço
+M: Soluço é uma contração involuntária do diafragma; geralmente passa sozinho em poucos minutos.
+U: o que foi a guerra fria
+M: A Guerra Fria, de 1947 a 1991, foi a disputa entre Estados Unidos e União Soviética, com corrida armamentista e espacial, sem guerra direta entre os dois.
+U: quando foi a guerra fria
+M: A Guerra Fria, de 1947 a 1991, foi a disputa entre Estados Unidos e União Soviética, com corrida armamentista e espacial, sem guerra direta entre os dois.
+U: o que é o pantanal
+M: O Pantanal é a maior planície alagável do mundo, entre Mato Grosso, Mato Grosso do Sul, Bolívia e Paraguai.
+U: onde fica o pantanal
+M: O Pantanal é a maior planície alagável do mundo, entre Mato Grosso, Mato Grosso do Sul, Bolívia e Paraguai.
+U: o que é a máquina de turing
+M: Alan Turing é considerado o pai da computação; criou a máquina de Turing e ajudou a quebrar o código Enigma na Segunda Guerra.
+U: quem foi alan turing
+M: Alan Turing é considerado o pai da computação; criou a máquina de Turing e ajudou a quebrar o código Enigma na Segunda Guerra.
+U: capital de timor
+M: A capital do Timor-Leste é Díli; o português é uma das línguas oficiais.
+U: qual é a capital do timor-leste
+M: A capital do Timor-Leste é Díli; o português é uma das línguas oficiais.
+U: círio de nazaré
+M: O Círio de Nazaré, em Belém, é uma das maiores procissões católicas do mundo, reunindo cerca de 2 milhões de pessoas em outubro.
+U: o que é o círio de nazaré
+M: O Círio de Nazaré, em Belém, é uma das maiores procissões católicas do mundo, reunindo cerca de 2 milhões de pessoas em outubro.
+U: diferença entre 4g e 5g
+M: O 5G é a quinta geração de telefonia móvel, com mais velocidade e menos atraso que o 4G.
+U: o que é 5g
+M: O 5G é a quinta geração de telefonia móvel, com mais velocidade e menos atraso que o 4G.
+U: capital do ceará
+M: A capital do Ceará é Fortaleza.
+U: qual é a capital do ceará
+M: A capital do Ceará é Fortaleza.
+U: o que galileu descobriu
+M: Galileu Galilei usou o telescópio para descobrir as luas de Júpiter e defendeu que a Terra gira em torno do Sol.
+U: quem foi galileu
+M: Galileu Galilei usou o telescópio para descobrir as luas de Júpiter e defendeu que a Terra gira em torno do Sol.
+U: o que foi o império romano
+M: O Império Romano do Ocidente durou até 476 depois de Cristo; o do Oriente, Bizâncio, até 1453.
+U: quanto durou o império romano
+M: O Império Romano do Ocidente durou até 476 depois de Cristo; o do Oriente, Bizâncio, até 1453.
+U: como identificar notícia falsa
+M: Para desconfiar de uma notícia: veja a fonte, a data, se outros veículos confiáveis confirmam, e cuidado com títulos alarmistas feitos para causar raiva.
+U: o que é fake news
+M: Para desconfiar de uma notícia: veja a fonte, a data, se outros veículos confiáveis confirmam, e cuidado com títulos alarmistas feitos para causar raiva.
+U: o que é o paradoxo do aniversário
+M: Num grupo de só 23 pessoas, a chance de duas fazerem aniversário no mesmo dia já passa de 50%.
+U: probabilidade de aniversário igual
+M: Num grupo de só 23 pessoas, a chance de duas fazerem aniversário no mesmo dia já passa de 50%.
+U: animal mais veloz
+M: O guepardo é o animal terrestre mais rápido, passando de 100 km/h; em mergulho, o falcão-peregrino passa de 300 km/h.
+U: qual é o animal mais rápido
+M: O guepardo é o animal terrestre mais rápido, passando de 100 km/h; em mergulho, o falcão-peregrino passa de 300 km/h.
+U: o que você está pensando?
+M: Estou esperando sua mensagem e observando meus sensores.
+U: o que é haiku
+M: Haicai é um poema curto de origem japonesa, com três versos, tradicionalmente de 5, 7 e 5 sílabas.
+U: o que é um haicai
+M: Haicai é um poema curto de origem japonesa, com três versos, tradicionalmente de 5, 7 e 5 sílabas.
+U: capital do piauí
+M: A capital do Piauí é Teresina, a única capital nordestina que não fica no litoral.
+U: qual é a capital do piauí
+M: A capital do Piauí é Teresina, a única capital nordestina que não fica no litoral.
+U: que legal
+M: Obrigada! Quer testar me ensinando alguma coisa?
+U: exemplos de sistema operacional
+M: O sistema operacional gerencia o hardware e roda os programas; Linux, Windows, macOS e Android são exemplos.
+U: o que é um sistema operacional
+M: O sistema operacional gerencia o hardware e roda os programas; Linux, Windows, macOS e Android são exemplos.
+U: dostoiévski
+M: Crime e Castigo foi escrito pelo russo Fiódor Dostoiévski em 1866.
+U: quem escreveu crime e castigo
+M: Crime e Castigo foi escrito pelo russo Fiódor Dostoiévski em 1866.
+U: o que é a matéria escura
+M: A matéria escura é uma massa invisível detectada pela gravidade; a energia escura acelera a expansão do universo. Juntas parecem ser cerca de 95% do universo, e ainda não sabemos o que são.
+U: o que é energia escura
+M: A matéria escura é uma massa invisível detectada pela gravidade; a energia escura acelera a expansão do universo. Juntas parecem ser cerca de 95% do universo, e ainda não sabemos o que são.
+U: o que é aceleração
+M: Velocidade é quanto a posição muda por tempo; aceleração é quanto a velocidade muda por tempo. Perto da superfície da Terra, a gravidade acelera os corpos em cerca de 9,8 m/s².
+U: o que é velocidade
+M: Velocidade é quanto a posição muda por tempo; aceleração é quanto a velocidade muda por tempo. Perto da superfície da Terra, a gravidade acelera os corpos em cerca de 9,8 m/s².
+U: o que é um llm
+M: Um modelo de linguagem aprende a prever o próximo pedaço de texto; os grandes têm bilhões de parâmetros. O meu tem algumas centenas de milhares.
+U: o que é um modelo de linguagem
+M: Um modelo de linguagem aprende a prever o próximo pedaço de texto; os grandes têm bilhões de parâmetros. O meu tem algumas centenas de milhares.
+U: defina número primo
+M: Um número primo é um inteiro maior que 1 que só é divisível por 1 e por ele mesmo, como 2, 3, 5, 7 e 11.
+U: o que é um número primo
+M: Um número primo é um inteiro maior que 1 que só é divisível por 1 e por ele mesmo, como 2, 3, 5, 7 e 11.
+U: o que mozart compôs
+M: Mozart foi um compositor austríaco que começou criança e compôs mais de 600 obras, como A Flauta Mágica, antes de morrer aos 35 anos.
+U: quem foi mozart
+M: Mozart foi um compositor austríaco que começou criança e compôs mais de 600 obras, como A Flauta Mágica, antes de morrer aos 35 anos.
+U: camadas da terra
+M: A Terra tem crosta, manto e núcleo; o núcleo externo é de ferro e níquel líquidos e o interno é sólido, tão quente quanto a superfície do Sol.
+U: do que é feita a terra
+M: A Terra tem crosta, manto e núcleo; o núcleo externo é de ferro e níquel líquidos e o interno é sólido, tão quente quanto a superfície do Sol.
+U: língua de sinais
+M: Libras é a Língua Brasileira de Sinais, reconhecida por lei em 2002; é uma língua completa, com gramática própria, não só gestos.
+U: o que é libras
+M: Libras é a Língua Brasileira de Sinais, reconhecida por lei em 2002; é uma língua completa, com gramática própria, não só gestos.
+U: oceano mais salgado
+M: O Atlântico é, em média, o oceano mais salgado.
+U: qual é o maior oceano em sal
+M: O Atlântico é, em média, o oceano mais salgado.
+U: capital do uruguai
+M: A capital do Uruguai é Montevidéu, às margens do Rio da Prata.
+U: qual é a capital do uruguai
+M: A capital do Uruguai é Montevidéu, às margens do Rio da Prata.
+U: o que é aprendizado de máquina
+M: Aprendizado de máquina é fazer o computador aprender padrões a partir de exemplos, em vez de seguir só regras escritas à mão.
+U: o que é machine learning
+M: Aprendizado de máquina é fazer o computador aprender padrões a partir de exemplos, em vez de seguir só regras escritas à mão.
+U: quem era cleópatra
+M: Cleópatra VII foi a última rainha do Egito ptolomaico; viveu mais perto da invenção do iPhone do que da construção da Grande Pirâmide.
+U: quem foi cleópatra
+M: Cleópatra VII foi a última rainha do Egito ptolomaico; viveu mais perto da invenção do iPhone do que da construção da Grande Pirâmide.
+U: capital da finlândia
+M: A capital da Finlândia é Helsinque.
+U: qual é a capital da finlândia
+M: A capital da Finlândia é Helsinque.
+U: capital da costa rica
+M: A capital da Costa Rica é San José; o país aboliu o exército em 1948.
+U: qual é a capital da costa rica
+M: A capital da Costa Rica é San José; o país aboliu o exército em 1948.
+U: como economizar água
+M: Fechar a torneira ao escovar os dentes, consertar vazamentos e reaproveitar água da máquina de lavar economiza centenas de litros por mês.
+U: dicas para economizar água
+M: Fechar a torneira ao escovar os dentes, consertar vazamentos e reaproveitar água da máquina de lavar economiza centenas de litros por mês.
+U: o que é daltonismo
+M: Daltonismo é a dificuldade de distinguir algumas cores, geralmente vermelho e verde; é bem mais comum em homens por estar ligado ao cromossomo X.
+U: por que algumas pessoas não veem cores
+M: Daltonismo é a dificuldade de distinguir algumas cores, geralmente vermelho e verde; é bem mais comum em homens por estar ligado ao cromossomo X.
+U: capital da suíça
+M: A capital administrativa da Suíça é Berna.
+U: qual é a capital da suíça
+M: A capital administrativa da Suíça é Berna.
+U: o que é ia generativa
+M: IA generativa cria conteúdo novo, como texto, imagem ou som, a partir de padrões aprendidos em muitos exemplos.
+U: o que é inteligência artificial generativa
+M: IA generativa cria conteúdo novo, como texto, imagem ou som, a partir de padrões aprendidos em muitos exemplos.
+U: o que é o mar morto
+M: O Mar Morto é tão salgado que quase nada vive nele e as pessoas boiam sem esforço; fica a mais de 400 metros abaixo do nível do mar.
+U: por que o mar morto se chama assim
+M: O Mar Morto é tão salgado que quase nada vive nele e as pessoas boiam sem esforço; fica a mais de 400 metros abaixo do nível do mar.
+U: do que é feito um átomo
+M: O átomo tem um núcleo com prótons e nêutrons, cercado por elétrons; quase todo o seu volume é espaço vazio.
+U: o que é um átomo
+M: O átomo tem um núcleo com prótons e nêutrons, cercado por elétrons; quase todo o seu volume é espaço vazio.
+U: o que é um kilobyte
+M: Um kilobyte são 1.000 bytes, um megabyte 1.000 kilobytes e um gigabyte 1.000 megabytes; nas medidas binárias, usa-se 1.024.
+U: quanto é um gigabyte
+M: Um kilobyte são 1.000 bytes, um megabyte 1.000 kilobytes e um gigabyte 1.000 megabytes; nas medidas binárias, usa-se 1.024.
+U: quanto é um megabyte
+M: Um kilobyte são 1.000 bytes, um megabyte 1.000 kilobytes e um gigabyte 1.000 megabytes; nas medidas binárias, usa-se 1.024.
+U: o que foi a idade média
+M: A Idade Média vai, por convenção, de 476, queda de Roma no Ocidente, até 1453, queda de Constantinopla.
+U: quando foi a idade média
+M: A Idade Média vai, por convenção, de 476, queda de Roma no Ocidente, até 1453, queda de Constantinopla.
+U: o que é um ângulo reto
+M: Ângulo reto tem 90 graus; agudo é menor que 90, obtuso fica entre 90 e 180 e raso tem 180.
+U: tipos de ângulo
+M: Ângulo reto tem 90 graus; agudo é menor que 90, obtuso fica entre 90 e 180 e raso tem 180.
+U: flamingo rosa
+M: O flamingo é rosa por causa dos pigmentos dos crustáceos e algas que come; sem eles, ficaria branco.
+U: por que o flamingo é rosa
+M: O flamingo é rosa por causa dos pigmentos dos crustáceos e algas que come; sem eles, ficaria branco.
+U: o que jorge amado escreveu
+M: Jorge Amado foi um escritor baiano, autor de Capitães da Areia, Gabriela, Cravo e Canela e Dona Flor e Seus Dois Maridos.
+U: quem foi jorge amado
+M: Jorge Amado foi um escritor baiano, autor de Capitães da Areia, Gabriela, Cravo e Canela e Dona Flor e Seus Dois Maridos.
+U: quem foi cecília meireles
+M: Cecília Meireles foi uma grande poeta carioca, autora do Romanceiro da Inconfidência; Cora Coralina, goiana, publicou seu primeiro livro aos 75 anos.
+U: quem foi cora coralina
+M: Cecília Meireles foi uma grande poeta carioca, autora do Romanceiro da Inconfidência; Cora Coralina, goiana, publicou seu primeiro livro aos 75 anos.
+U: o que é expoente
+M: Potência é multiplicar um número por ele mesmo várias vezes: 2³ = 2 × 2 × 2 = 8. Qualquer número diferente de zero elevado a zero dá 1.
+U: o que é potência
+M: Potência é multiplicar um número por ele mesmo várias vezes: 2³ = 2 × 2 × 2 = 8. Qualquer número diferente de zero elevado a zero dá 1.
+U: quantos experts você tem?
+M: Tenho alguns experts procedurais, de recuperação e neurais. O comando experts mostra a lista.
+U: como lidar com ansiedade
+M: Respirar devagar, se movimentar, dormir bem e conversar com alguém ajudam; se a ansiedade atrapalha a vida, vale procurar um profissional de saúde.
+U: dicas para ansiedade
+M: Respirar devagar, se movimentar, dormir bem e conversar com alguém ajudam; se a ansiedade atrapalha a vida, vale procurar um profissional de saúde.
+U: de onde vem a palavra obrigado
+M: Obrigado vem da ideia de ficar obrigado, em dívida, com quem fez um favor; por isso o certo é obrigado para homens e obrigada para mulheres.
+U: origem de obrigado
+M: Obrigado vem da ideia de ficar obrigado, em dívida, com quem fez um favor; por isso o certo é obrigado para homens e obrigada para mulheres.

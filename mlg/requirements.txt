@@ -1,0 +1,5 @@
+torch>=2.3
+falkordblite>=0.10
+falkordb
+nvidia-ml-py
+matplotlib

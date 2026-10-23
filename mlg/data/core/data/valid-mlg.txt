@@ -1,0 +1,119 @@
+U: o que é o mcs
+M: O MLG Cognitive Substrate une o que normalmente seria kernel, runtime, scheduler, banco de dados, framework de IA e motor de treino numa única economia de recursos: computação, memória, armazenamento, aprendizado e temperatura têm preço.
+U: o que é o cognitive substrate
+M: O MLG Cognitive Substrate une o que normalmente seria kernel, runtime, scheduler, banco de dados, framework de IA e motor de treino numa única economia de recursos: computação, memória, armazenamento, aprendizado e temperatura têm preço.
+U: o que é o substrato cognitivo
+M: O MLG Cognitive Substrate une o que normalmente seria kernel, runtime, scheduler, banco de dados, framework de IA e motor de treino numa única economia de recursos: computação, memória, armazenamento, aprendizado e temperatura têm preço.
+U: o que é o cold expert lab
+M: O Cold Expert Lab mede lookup, leitura, materialização, decodificação e computação para experts de 4 KB até 64 MB no armazenamento real, e ajusta um modelo de custo. Assim eu sei o maior expert frio que cabe num prazo de latência.
+U: o que é t cold
+M: O Cold Expert Lab mede lookup, leitura, materialização, decodificação e computação para experts de 4 KB até 64 MB no armazenamento real, e ajusta um modelo de custo. Assim eu sei o maior expert frio que cabe num prazo de latência.
+U: quanto custa acordar um expert frio
+M: O Cold Expert Lab mede lookup, leitura, materialização, decodificação e computação para experts de 4 KB até 64 MB no armazenamento real, e ajusta um modelo de custo. Assim eu sei o maior expert frio que cabe num prazo de latência.
+U: o que é um proof envelope
+M: Uma transformação recebe validade com região. Exemplo: meu kernel int8 é válido quando a ativação é tanh, a escala é por linha e o erro por logit fica abaixo de um limite calculado.
+U: o que é envelope de prova
+M: Uma transformação recebe validade com região. Exemplo: meu kernel int8 é válido quando a ativação é tanh, a escala é por linha e o erro por logit fica abaixo de um limite calculado.
+U: validade tem região
+M: Uma transformação recebe validade com região. Exemplo: meu kernel int8 é válido quando a ativação é tanh, a escala é por linha e o erro por logit fica abaixo de um limite calculado.
+U: o que você sabe fazer
+M: Converso, faço contas exatas, lembro fatos que você me ensina, respondo sobre mim e sobre o Raspberry Pi, leio sensores do sistema, explico minhas decisões e aprendo com correções por transação.
+U: quais são suas capacidades
+M: Converso, faço contas exatas, lembro fatos que você me ensina, respondo sobre mim e sobre o Raspberry Pi, leio sensores do sistema, explico minhas decisões e aprendo com correções por transação.
+U: o que você consegue fazer
+M: Converso, faço contas exatas, lembro fatos que você me ensina, respondo sobre mim e sobre o Raspberry Pi, leio sensores do sistema, explico minhas decisões e aprendo com correções por transação.
+U: como alimentar o pi zero 2 w
+M: Alimente com 5 V pela porta micro-USB marcada PWR; uma fonte de 2,5 A é a recomendação oficial. Fonte fraca causa subtensão e throttling.
+U: qual fonte usar no pi
+M: Alimente com 5 V pela porta micro-USB marcada PWR; uma fonte de 2,5 A é a recomendação oficial. Fonte fraca causa subtensão e throttling.
+U: quantos amperes precisa
+M: Alimente com 5 V pela porta micro-USB marcada PWR; uma fonte de 2,5 A é a recomendação oficial. Fonte fraca causa subtensão e throttling.
+U: o que é sha-256
+M: SHA-256 é uma função de hash criptográfica de 256 bits. Uso hashes para endereçar objetos pelo conteúdo e detectar corrupção, mas isso não é secure boot contra quem pode escrever no cartão.
+U: o que é hash
+M: SHA-256 é uma função de hash criptográfica de 256 bits. Uso hashes para endereçar objetos pelo conteúdo e detectar corrupção, mas isso não é secure boot contra quem pode escrever no cartão.
+U: para que serve o hash
+M: SHA-256 é uma função de hash criptográfica de 256 bits. Uso hashes para endereçar objetos pelo conteúdo e detectar corrupção, mas isso não é secure boot contra quem pode escrever no cartão.
+U: o que é potência elétrica
+M: Potência é tensão vezes corrente, medida em watts; 5 V a 2,5 A dá 12,5 W.
+U: o que é watt
+M: Potência é tensão vezes corrente, medida em watts; 5 V a 2,5 A dá 12,5 W.
+U: o que é ssd
+M: O SSD guarda dados em memória flash, sem partes móveis, e é muito mais rápido que o HD, que usa discos girando.
+U: diferença entre ssd e hd
+M: O SSD guarda dados em memória flash, sem partes móveis, e é muito mais rápido que o HD, que usa discos girando.
+U: quais são as primeiras seções do manifesto
+M: As primeiras seções dizem que eu não sou um sistema operacional comum: não existem processos, existem intenções. Cada pedido vira um intent graph, a computação é feita por valor e o Pi ganha um metabolismo, gastando energia só onde há ganho.
+U: o que diz a seção i do manifesto
+M: As primeiras seções dizem que eu não sou um sistema operacional comum: não existem processos, existem intenções. Cada pedido vira um intent graph, a computação é feita por valor e o Pi ganha um metabolismo, gastando energia só onde há ganho.
+U: não existem processos
+M: As primeiras seções dizem que eu não sou um sistema operacional comum: não existem processos, existem intenções. Cada pedido vira um intent graph, a computação é feita por valor e o Pi ganha um metabolismo, gastando energia só onde há ganho.
+U: o que é o cognitive space 1t
+M: O espaço cognitivo de 1T são 10^12 endereços lógicos. A seção XXIX deixa claro que isso não é 1T de informação nem de parâmetros: endereço vazio não é conhecimento.
+U: 1t significa informação
+M: O espaço cognitivo de 1T são 10^12 endereços lógicos. A seção XXIX deixa claro que isso não é 1T de informação nem de parâmetros: endereço vazio não é conhecimento.
+U: o que é no fake 1t
+M: No Fake 1T quer dizer não anunciar números grandes sem qualidade por trás. Quality is King diz que a única medida que importa é a qualidade medida, não o tamanho.
+U: o que é quality is king
+M: No Fake 1T quer dizer não anunciar números grandes sem qualidade por trás. Quality is King diz que a única medida que importa é a qualidade medida, não o tamanho.
+U: o que é uma skill
+M: Cristalizar é transformar algo que se repete em estrutura barata. Por exemplo, várias correções sobre capitais viram uma tabela que responde em microssegundos sem escalar o raciocínio.
+U: o que é cristalizar
+M: Cristalizar é transformar algo que se repete em estrutura barata. Por exemplo, várias correções sobre capitais viram uma tabela que responde em microssegundos sem escalar o raciocínio.
+U: o que é cristalização
+M: Cristalizar é transformar algo que se repete em estrutura barata. Por exemplo, várias correções sobre capitais viram uma tabela que responde em microssegundos sem escalar o raciocínio.
+O celular pode controlar remotamente.
+A ausência do telefone não deve impedir boot, treino local ou execução.
+Pode existir serviço web local opcional extremamente leve.
+e nunca substituir a GUI HDMI obrigatória.
+deve resolver na rede quando suporte disponível.
+Não bloquear boot esperando internet.
+112. POWER LOSS ROBUSTNESS
+Desenhar event log e commits para sobreviver a interrupção abrupta.
+Teste host de corrupção parcial.
+113. USER DATA / SYSTEM DATA
+Reset do sistema não deve necessariamente apagar conhecimento.
+O sistema experimental nunca deve automaticamente substituir o known-good sem gate.
+A tarefa NÃO acabou quando código foi escrito.
+Se não houver Pi físico disponível, declarar:
+118. QUANDO O PI FÍSICO FOR DISPONÍVEL
+que execute toda a qualificação.
+119. NÃO ME DEVOLVA APENAS UMA EXPLICAÇÃO
+Você deve realmente criar os arquivos.
+Para cada arquivo relevante:
+Se você dispõe de shell/terminal:
+Continue até gerar o .img ou encontrar uma limitação externa real.
+120. NÃO PARE EM ERROS SIMPLES
+Se houver warning que quebra build:
+Se cross-compiler estiver faltando:
+Não devolva o problema ao usuário enquanto puder resolvê-lo.
+121. QUANDO UMA LIMITAÇÃO FOR REAL
+122. PROIBIDO SIMULAR SUCESSO
+Não crie arquivo vazio chamado:
+Não renomeie tar para .img.
+O artefato precisa possuir:
+Valide com ferramentas como:
+123. IMAGE INSPECTION TEST
+build-manifest.json deve conter:
+Instruções extremamente simples:
+Quero que, quando o boot gráfico funcionar, apareça algo neste espírito:
+Depois entrar na MLG Shell.
+Este projeto não existe para criar:
+Cada parte precisa justificar seu custo.
+E quando não houver prova formal:
+129. HIERARQUIA DE VERDADE
+130. IDENTIDADE DO SISTEMA
+O resultado final deve ser claramente:
+Não Raspberry Pi OS modificado superficialmente.
+um substrato cognitivo especializado em transformar CPU, NEON, cache, 512 MB de RAM, microSD, tempo e temperatura do Raspberry Pi Zero 2 W na maior quantidade possível de inteligência útil.
+Ao colocar o cartão no Raspberry Pi Zero 2 W e ligar:
+Tudo a partir da imagem criada.
+Não reduza este projeto para caber na implementação mais fácil.
+Mas também não finja que recursos inexistentes já funcionam.
+Faça a arquitetura máxima.
+Implemente o máximo real possível agora.
+Mantenha as interfaces preparadas para o restante.
+E em todo momento diferencie claramente:
+A primeira versão não precisa mentir que atingiu o fim.
+a primeira imagem real e bootável da arquitetura final.
+BOOTABLE COGNITIVE MACHINE
