@@ -840,6 +840,23 @@ static int has_stem(char **w, int n, const char *x) {
     return 0;
 }
 
+/* share of what the question asks (weighted by rarity) that a passage contains; a word
+ * found only by its stem counts `stem` of a word found as asked */
+static double coverage_as(const mlg_mind *m, const char *question, const char *passage, double stem) {
+    char q[512], pn[1600];
+    norm(question, q, sizeof q);
+    norm(passage, pn, sizeof pn);
+    char *qw[64], *pw[300];
+    const int nq = words(q, qw, 64), np = words(pn, pw, 300);
+    double asked = 0.0, found = 0.0;
+    for (int i = 0; i < nq; i++) {
+        const int exact = has_word(pw, np, qw[i]), hit = exact || has_stem(pw, np, qw[i]);
+        const float wt = weight(m, qw[i], hit);
+        asked += wt, found += exact ? wt : hit ? stem * wt : 0.0;
+    }
+    return asked > 0.0 ? found / asked : 0.0;
+}
+
 /* share of what the question asks (weighted by rarity) that a passage contains */
 static double coverage(const mlg_mind *m, const char *question, const char *passage) {
     char q[512], pn[1600];
@@ -1225,16 +1242,25 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
         if (lead >= 0) {
             int ltl;
             const char *ltitle = mlg_know_title(m->know, lead, &ltl);
-            double best_c = -1.0;
-            for (int id = lead; id < mlg_know_count(m->know) && id < lead + 400; id++) {
-                int xl, tl;
-                const char *title = mlg_know_title(m->know, id, &tl), *x = mlg_know_text(m->know, id, &xl);
-                if (tl != ltl || memcmp(title, ltitle, tl)) break;  /* the article ends */
-                char whole[1600];
-                snprintf(whole, sizeof whole, "%.*s %.*s", tl, title, xl < 1200 ? xl : 1200, x);
-                const double c = coverage(m, text, whole);
-                if (c > best_c + 1e-6) best_c = c, first = id;
-                if (c > 0.999) break;
+            char tq[300];
+            snprintf(tq, sizeof tq, "%.*s", ltl, ltitle);
+            /* only about the article ("quem foi Cabral"): its lead. About an aspect of it ("a
+             * população de Angola"): the passage that covers the aspect, retrieval's score
+             * deciding between those that cover it as well */
+            if (coverage(m, text, tq) < 0.999) {
+                double best_c = -1.0, best_b = -1.0;
+                for (int id = lead; id < mlg_know_count(m->know) && id < lead + 400; id++) {
+                    int xl, tl;
+                    const char *title = mlg_know_title(m->know, id, &tl), *x = mlg_know_text(m->know, id, &xl);
+                    if (tl != ltl || memcmp(title, ltitle, tl)) break;  /* the article ends */
+                    char whole[1600];
+                    snprintf(whole, sizeof whole, "%.*s %.*s", tl, title, xl < 1200 ? xl : 1200, x);
+                    const double c = coverage_as(m, text, whole, 0.5);
+                    double b = 0.0;
+                    for (int i = 0; i < n; i++)
+                        if (ids[i] == id && sc[0] > 0.f) b = sc[i] / sc[0];
+                    if (c > best_c + 1e-6 || (c > best_c - 1e-6 && b > best_b + 1e-6)) best_c = c, best_b = b, first = id;
+                }
             }
             /* "o que é DNA?" finding the manga "DNA²": its lead does not say what DNA is */
             t->loose = first == lead && definitional(text) && !defines(m, text, lead);
@@ -1287,12 +1313,20 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
 
 /* The sentences of the evidence that answer the question best (by what they share
  * with it, rare words weighing most), in their order. */
-static void extract(const mlg_mind *m, const char *question, const char *evidence, char *out, int cap) {
-    char ev[1600], q[512];
+static void extract(const mlg_mind *m, const char *question, const char *evidence, const char *title, char *out, int cap) {
+    char ev[1600], q[512], tn[300];
     copy(ev, sizeof ev, evidence);
     norm(question, q, sizeof q);
-    char *qw[64];
-    const int nq = words(q, qw, 64);
+    norm(starts(title, MLG_TITLE) ? "" : title, tn, sizeof tn);
+    char *qw[64], *tw[32];
+    int nq = words(q, qw, 64);
+    const int nt = words(tn, tw, 32);
+    /* the article's own subject is in every sentence of it, said or not: the aspect asked decides
+     * ("a capital da Alemanha", in the article Alemanha, is the sentence about the capital) */
+    int kept = 0;
+    for (int i = 0; i < nq; i++)
+        if (!has_word(tw, nt, qw[i])) qw[kept++] = qw[i];
+    if (kept) nq = kept;
     char *sent[48];
     int ns = 0;
     char *st = ev;
@@ -1412,7 +1446,7 @@ void mlg_mind_finish(mlg_mind *m, const mlg_thought *t, const char *raw, char *o
     copy(m->spoke, sizeof m->spoke, t->evidence[0] ? "knowledge" : "trust");
     if (t->evidence[0]) {
         char best[700];
-        extract(m, q, t->evidence, best, sizeof best);
+        extract(m, q, t->evidence, t->evidence_title, best, sizeof best);
         char in_context[1000];  /* a sentence is read within its article: "Marrocos" is said by the title */
         snprintf(in_context, sizeof in_context, "%s %s", starts(t->evidence_title, MLG_TITLE) ? "" : t->evidence_title, best);
         if (!t->loose && coverage(m, q, in_context) >= 0.7) snprintf(out, cap, "Pelo que eu sei: %s", best);
