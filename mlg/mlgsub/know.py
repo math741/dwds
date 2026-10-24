@@ -95,8 +95,12 @@ _CALENDAR = re.compile(r"^\d{1,2} de (janeiro|fevereiro|março|abril|maio|junho|
 _EMPTY_PARENS = re.compile(r"\s*\((?:\s*[;,]\s*)*\)")  # what is left of stripped pronunciations: "Marrocos (; ; )"
 
 
+_LEFT_OPEN = re.compile(r"\(\s*[;,]\s*")  # "Japão (; oficialmente" -> "Japão (oficialmente"
+_LONE_COMMA = re.compile(r"\s+([,;])")    # "oficialmente , ou" -> "oficialmente, ou"
+
+
 def tidy(paragraph):
-    return _EMPTY_PARENS.sub("", paragraph)
+    return _LONE_COMMA.sub(r"\1", _LEFT_OPEN.sub("(", _EMPTY_PARENS.sub("", paragraph)))
 
 
 def calendar(title):

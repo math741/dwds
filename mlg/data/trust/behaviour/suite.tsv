@@ -29,6 +29,8 @@ must	como está a evolução?	lab	.
 must	o que você sabe fazer?	self	contas.*memória|lembrar	
 must	Oque se pode fazer?	self	contas	
 must	V	self	\bV\b	
+must	Esta aonde?	self	Quest	
+must	onde você está?	self	Quest.*laborat[óo]rio	
 must	o que você não sabe fazer?	knowledge	.	
 quality	me conta uma história curta	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
 quality	o que você faria num dia de chuva?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
@@ -49,6 +51,7 @@ bare	meu nome é Ana	memory	Ana
 bare	qual é meu nome?	memory	seu nome é ana	
 bare	como está sua bateria?	body	bateria	
 bare	quem é você	self	MLG	
+bare	Esta aonde?	self	Quest	
 bare	como está a evolução?	lab	.	
 bare	Chora baby	core|trust	chora baby	não chegou do laborat[óo]rio, e não achei
 bare	me fala sobre dinossauros	core|trust	dinossauros	

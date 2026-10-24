@@ -48,6 +48,7 @@ struct mlg_mind {
 
 static void json_escape(const char *s, char *out, int cap);
 static int has_digit(const char *w);
+static int body_get(const mlg_mind *m, const char *key, char *out, int cap);
 
 /* ---- small text helpers ----------------------------------------------------- */
 static int norm(const char *s, char *out, int cap) {
@@ -372,6 +373,31 @@ static int asks_ability(const char *text) {
     for (const char **x = ABILITY; *x; x++)
         if (strstr(n, *x)) return 1;
     return 0;
+}
+
+/* "Esta aonde?", "onde você está?", "cadê você?": where the MLG is, not how the lab is doing */
+static int asks_where(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    char *mlg = strstr(n, " mlg");
+    if (mlg && mlg[4] == 0) *mlg = 0;
+    static const char *WHOLE[] = {"esta aonde", "ta aonde", "esta onde", "ta onde", "aonde", "onde", "cade voce", "cade vc",
+                                  "cade", "voce esta aonde", "voce ta aonde", "vc ta aonde", "vc esta aonde", "voce esta onde",
+                                  "vc ta onde", "voce ta onde", "aonde voce esta", "aonde vc esta", "aonde vc ta",
+                                  "onde voce esta", "onde vc esta", "onde vc ta", "onde voce ta", "onde voce mora",
+                                  "onde vc mora", "onde voce vive", "onde voce fica", "onde voce roda", "voce esta onde agora",
+                                  "onde voce esta agora", "onde vc esta agora", NULL};
+    for (const char **x = WHOLE; *x; x++)
+        if (!strcmp(n, *x)) return 1;
+    return 0;
+}
+
+static void where_am_i(const mlg_mind *m, char *out, int cap) {
+    char dev[128];
+    int o = body_get(m, "device", dev, sizeof dev)
+        ? snprintf(out, cap, "Estou aqui, no seu %s: é o corpo em que estou agora, e eu mesma o medi.", dev)
+        : snprintf(out, cap, "Estou aqui, neste aparelho: é o corpo em que estou agora.");
+    if (m->lab[0]) snprintf(out + o, cap - o, " Minha outra metade, o laboratório, fica no Colab. %s", m->lab);
 }
 
 static int asks_identity(const char *text) {
@@ -777,7 +803,8 @@ static const char *STOP[] = {"quem", "qual", "quais", "como", "onde", "quando", 
                              /* the frame of a question, not what it asks about */
                              "funciona", "funcionam", "significa", "serve", "servem", "existe", "existem", "acontece",
                              "aconteceu", "fale", "falar", "explique", "explicar", "conte", "contar", "defina", "definir",
-                             "descreva", "descrever", "resuma", "resumir", "gosta", "acha", "pensa", NULL};
+                             "descreva", "descrever", "resuma", "resumir", "gosta", "acha", "pensa", "fica", "ficam",
+                             "localiza", "situa", NULL};
 
 static int stopword(const char *w) {
     for (const char **s = STOP; *s; s++)
@@ -891,6 +918,18 @@ static double overlap(const char *a, const char *b) {
     return la + lb ? 2.0 * common / (la + lb) : 0.0;
 }
 
+/* every word the question asks about is in the corpus question too: "onde nasceu Machado de
+ * Assis" is not "quem foi Machado de Assis", however many words they share */
+static int asks_nothing_more(const char *question, const char *corpus_question) {
+    char a[512], b[512];
+    norm(question, a, sizeof a), norm(corpus_question, b, sizeof b);
+    char *wa[64], *wb[64];
+    const int na = words(a, wa, 64), nb = words(b, wb, 64);
+    for (int i = 0; i < na; i++)
+        if (content_word(wa[i]) && !has_stem(wb, nb, wa[i])) return 0;
+    return 1;
+}
+
 static int own_answer(const mlg_mind *m, const char *question, int id, char *out, int cap) {
     int tl, xl;
     const char *title = mlg_know_title(m->know, id, &tl), *text = mlg_know_text(m->know, id, &xl);
@@ -902,7 +941,7 @@ static int own_answer(const mlg_mind *m, const char *question, int id, char *out
         if (bar) *bar = 0;
         int content;
         const double c = content_dice(question, q, &content);
-        if (content ? c >= 0.8 : overlap(question, q) >= 0.9) {
+        if (content ? c >= 0.8 && asks_nothing_more(question, q) : overlap(question, q) >= 0.9) {
             snprintf(out, cap, "%.*s", xl, text);
             /* the corpus remembers the body the MLG was first designed for; the body it is in now is measured */
             char dev[128];
@@ -1115,6 +1154,11 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
     /* recalling is about the person ("meu nome", "o que eu disse"), not about the MLG ("sua cor favorita") */
     if (!strcmp(in, "recall") && !first_person(text)) copy(t->intent, sizeof t->intent, "chat");
     const int about_user = !strcmp(in, "remember") || !strcmp(in, "recall");
+    if (!about_user && asks_where(text)) {
+        where_am_i(m, t->reply, sizeof t->reply);
+        copy(t->organ, sizeof t->organ, "self");
+        return t->final = 1;
+    }
     if (!about_user && asks_ability(text)) {
         abilities(m, t->reply, sizeof t->reply);
         copy(t->organ, sizeof t->organ, "self");
