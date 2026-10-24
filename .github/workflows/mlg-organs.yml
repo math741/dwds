@@ -59,9 +59,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd "$RUNNER_TEMP/organs"
-          gh release delete mlg-organs --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
-          # the manifest last: it tells the app the rest is ready
-          gh release create mlg-organs know.mlgk router.mlgr --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
-            --title "MLG · órgãos de base (build $GITHUB_RUN_NUMBER)" \
-            --notes "Roteador e conhecimento (corpus da MLG + ${WIKI_MB} MiB da Wikipédia em português), feitos do zero pelo CI e aprovados na prova de comportamento. O app no Quest baixa sozinho enquanto o Colab não publica um cérebro próprio (mlg-brain)."
-          gh release upload mlg-organs manifest.json --repo "$GITHUB_REPOSITORY"
+          TITLE="MLG · órgãos de base (build $GITHUB_RUN_NUMBER)"
+          NOTES="Roteador e conhecimento (corpus da MLG + ${WIKI_MB} MiB da Wikipédia em português), feitos do zero pelo CI e aprovados na prova de comportamento. O app baixa sozinho enquanto o Colab não publica um cérebro próprio (mlg-brain)."
+          if ! gh release view mlg-organs --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create mlg-organs --prerelease --target "$GITHUB_SHA" --title "$TITLE" --notes "$NOTES" --repo "$GITHUB_REPOSITORY"
+          fi
+          # the organs first, the manifest last: it tells the app the rest is ready
+          gh release upload mlg-organs know.mlgk router.mlgr --clobber --repo "$GITHUB_REPOSITORY"
+          gh release upload mlg-organs manifest.json --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit mlg-organs --title "$TITLE" --notes "$NOTES" --repo "$GITHUB_REPOSITORY"

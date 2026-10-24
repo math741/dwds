@@ -72,7 +72,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete mlg-apk --yes --cleanup-tag || true
-          gh release create mlg-apk MLG.apk --prerelease --target "$GITHUB_SHA" \
-            --title "MLG · app para o Quest (build $GITHUB_RUN_NUMBER)" \
-            --notes "Instale no Quest 3S com o SideQuest ou com: adb install -r MLG.apk. Os cérebros chegam sozinhos do release mlg-brain, publicado pelo notebook do Colab."
+          # replace the file in place: a failed publish never leaves the release without an APK
+          TITLE="MLG · app para o Quest e Android (build $GITHUB_RUN_NUMBER)"
+          NOTES="Instale no Quest 3S (ou em qualquer Android) com o SideQuest ou com: adb install -r MLG.apk. Os órgãos de base chegam sozinhos do release mlg-organs; o Resident Core, pelo link com o Colab ou do release mlg-brain."
+          if gh release view mlg-apk --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload mlg-apk MLG.apk --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit mlg-apk --title "$TITLE" --notes "$NOTES" --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create mlg-apk MLG.apk --prerelease --target "$GITHUB_SHA" --title "$TITLE" --notes "$NOTES" --repo "$GITHUB_REPOSITORY"
+          fi
