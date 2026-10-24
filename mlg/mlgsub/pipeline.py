@@ -136,7 +136,7 @@ class Run:
         know.build(self.root, os.path.join(self.scratch, "know.mlgk"), B.Corpus.TRAIN, set(), wiki, log=self.log)
         self.rag = know.grounded_dialogs(train_index, passages, self.root, B.Corpus.TRAIN, held,
                                          os.path.join(self.scratch, "grounded.txt"),
-                                         wiki_titles=2000 if self.quick else 200000, log=self.log)
+                                         wiki_titles=2000 if self.quick else 30000, log=self.log)
         self.sub.obj("Dataset", "dataset:knowledge", origin="know.build", epistemic="KNOWN",
                      passages=len(passages), wikipedia_passages=len(wiki))
         self.sub.event("FED", "dataset:knowledge", passages=len(passages))

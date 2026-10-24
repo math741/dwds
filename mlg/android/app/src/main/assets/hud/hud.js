@@ -19,7 +19,7 @@ const ORGANS = [
   { id: "lab", label: "LAB", color: 0x7cf0ff },
 ];
 const ORGAN_OF = { math: "procedural", time: "procedural", remember: "memory", recall: "memory", body: "body",
-  lab: "lab", knowledge: "knowledge", chat: "core" };
+  lab: "lab", knowledge: "knowledge", chat: "core", social: "procedural" };
 
 // ---- scene -------------------------------------------------------------------
 const canvas = $("scene");
@@ -338,11 +338,11 @@ function addMsg(cls, who, text, organ) {
   log.scrollTop = log.scrollHeight;
   return m;
 }
-const ORGAN_NAME = { procedural: "CÁLCULO · EXATO", memory: "MEMÓRIA", body: "CORPO", lab: "LABORATÓRIO", core: "RESIDENT CORE",
+const ORGAN_NAME = { social: "SOCIAL", procedural: "CÁLCULO · EXATO", memory: "MEMÓRIA", body: "CORPO", lab: "LABORATÓRIO", core: "RESIDENT CORE",
   knowledge: "BUSCA", chat: "CORE", trust: "TRUST CORE" };
 function organName(o) {
   if (!o) return "";
-  if (o.startsWith("lab:")) return "CÉREBRO DO LAB · A100";
+  if (o.startsWith("lab:")) return "CÉREBRO DO LAB · " + o.slice(4).toUpperCase();
   return ORGAN_NAME[o] || o.toUpperCase();
 }
 

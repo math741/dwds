@@ -198,7 +198,7 @@ class Furnace:
               home_latency_level="PREDICTED" if self.deploy else "MEASURED")
         cost = real["joules"] if real["joules"] is not None else real["seconds"]
         row.update(brain=bid, status="SURVIVED", dev_bpb=dev_bpb, gap=gap, model=model,
-                   lineage_bytes=self.lineage[gid][1],
+                   lineage_bytes=self.lineage[gid][1], lineage_seconds=self.lineage[gid][0],
                    joules=real["joules"], seconds=real["seconds"], cost=cost,
                    latency_ms=pred.get("deploy_latency_ms", lat), eval_dev=e_dev)
         self._remember(gid, model, dev_bpb)

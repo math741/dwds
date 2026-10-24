@@ -155,7 +155,7 @@ def grounded_dialogs(index, passages, root, train_files, held, out, wiki_titles=
             if len(answer) < 40:
                 continue
             q = rng.choice(QUESTIONS).format(t=title)
-            if rng.random() < 0.12:  # an unrelated passage: the honest answer is that it does not say
+            if rng.random() < 0.08:  # an unrelated passage: the honest answer is that it does not say
                 other = passages[firsts[rng.choice(titles)]][1]
                 fh.write(f"C: {_context(other)}\nU: {q}\nM: Não encontrei isso no que eu sei agora.\n")
             else:

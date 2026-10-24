@@ -198,12 +198,14 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         }
         val t = text.lowercase()  // no router yet: the obvious cases only
         val i = when {
+            Social.reply(text) != null -> "chat"
             Procedural.math(t) != null -> "math"
             Regex("que horas|que dia|data de hoje").containsMatchIn(t) -> "time"
             Regex("^(lembr|anota|guarda|meu nome|eu me chamo)").containsMatchIn(t) -> "remember"
             Regex("(qual|como) .*(meu nome|me chamo)|o que eu (te )?disse").containsMatchIn(t) -> "recall"
             Regex("bateria|temperatura|seu corpo").containsMatchIn(t) -> "body"
             Regex("evolu|c[eé]rebro|laborat|colab").containsMatchIn(t) -> "lab"
+            t.trim().split(Regex("\\s+")).size <= 3 -> "chat"
             else -> "knowledge"
         }
         return i to probs.put(i, 1.0)
@@ -220,6 +222,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         val (intent, probs) = route(text)
         emit("route", JSONObject().put("intent", intent).put("probs", probs))
         trust.event("INTENT", JSONObject().put("intent", intent))
+        if (intent == "chat") Social.reply(text)?.let { reply(it, "social"); return }
         when (intent) {
             "math" -> Procedural.math(text)?.let { reply(it, "procedural") } ?: speak(text, null)
             "time" -> reply(Procedural.time(text), "procedural")
@@ -268,8 +271,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         }
         memory.recall(text, 2).forEach { ctxParts += "(memória) ${it.text}" }
         val prompt = (if (ctxParts.isNotEmpty()) "C: ${ctxParts.joinToString(" ")}\n" else "") + "U: ${text.trim()}\nM:"
-        labBrain?.takeIf { link?.connected == true }?.let { brain ->
-            askLab(prompt)?.let { reply(it.trim(), "lab:$brain"); return }
+        labBrain?.takeIf { link?.connected == true }?.let {
+            askLab(prompt)?.let { (text, info) -> reply(text.trim(), "lab:$info"); return }
         }
         if (core != 0L) {
             emit("thinking", JSONObject().put("organ", "core"))
@@ -284,20 +287,24 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         }
     }
 
-    private fun askLab(prompt: String): String? {
+    /** The lab brain's answer and how much training it carries ("3 min de treino", "amadurecendo 40%"). */
+    private fun askLab(prompt: String): Pair<String, String>? {
         val id = UUID.randomUUID().toString().take(8)
         val q = LinkedBlockingQueue<JSONObject>()
         labReplies[id] = q
         emit("thinking", JSONObject().put("organ", "lab"))
         link?.publish("ask", JSONObject().put("id", id).put("prompt", prompt).put("max", 360).put("temp", 0.6))
         val sb = StringBuilder()
+        var info = ""
         try {
             var wait = 6L  // the lab answers between training steps
             while (true) {
-                val m = q.poll(wait, TimeUnit.SECONDS) ?: return if (sb.isEmpty()) null else sb.toString()
+                val m = q.poll(wait, TimeUnit.SECONDS) ?: return if (sb.isEmpty()) null else sb.toString() to info
                 if (m.has("err")) return null
+                info = if (m.has("maturing")) "amadurecendo ${(m.optDouble("maturing") * 100).toInt()}%"
+                       else "${maxOf(1, m.optInt("trained_s") / 60)} min de treino"
                 m.optString("chunk").takeIf { it.isNotEmpty() }?.let { sb.append(it); emit("say_chunk", JSONObject().put("text", it)) }
-                if (m.optBoolean("done")) return sb.toString()
+                if (m.optBoolean("done")) return sb.toString() to info
                 wait = 15L
             }
         } finally {

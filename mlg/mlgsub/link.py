@@ -57,6 +57,8 @@ class Link:
         self.brain = None             # (model, genome, brain id) that answers the headset
         self.training = None          # what the lab is training right now
         self.training_g = None
+        self.brain_seconds = 0
+        self.frac = 0.0
         self.sub = None
         self.field_report = None      # the headset's own measurements
         self.headsets = 0
@@ -165,12 +167,15 @@ class Link:
     def commit(self, row):
         if row.get("model") is not None:
             self.brain = (row["model"], row["g"], row["brain"])
-            self.publish("train", {"champion": row["brain"], "params": row["params"]})
+            self.brain_seconds = row.get("lineage_seconds") or row.get("seconds") or 0
+            self.publish("train", {"champion": row["brain"], "params": row["params"],
+                                   "trained_s": round(self.brain_seconds)})
 
     def tick(self, model=None, steps=0, frac=0.0, loss=None):
         """Between training steps: report progress, answer what the headset asked.
         During maturation the brain still learning answers (it is the best one)."""
         now = time.time()
+        self.frac = frac
         if loss is not None and now - self._last_train > 2:
             self._last_train = now
             self.publish("train", {"steps": steps, "frac": round(frac, 4), "loss_bpb": loss / 0.6931471805599453,
@@ -182,6 +187,7 @@ class Link:
         from . import brain as B
 
         brain = self.brain if model is None else (model, self.training_g, "maturing")
+        trained = {"trained_s": round(self.brain_seconds)} if model is None else {"maturing": round(self.frac, 3)}
         if brain is None:
             self.publish("say", {"id": ask.get("id"), "err": "the lab has no committed brain yet", "done": True})
             return
@@ -191,7 +197,7 @@ class Link:
         def on_byte(b):
             buf.append(dec.decode(bytes([b])))
             if len(buf) >= 12:
-                self.publish("say", {"id": ask.get("id"), "chunk": "".join(buf), "done": False, "brain": bid})
+                self.publish("say", {"id": ask.get("id"), "chunk": "".join(buf), "done": False, "brain": bid, **trained})
                 buf.clear()
             return False
 
@@ -199,7 +205,7 @@ class Link:
         B.generate(m, g, ask.get("prompt", ""), device, n=int(ask.get("max", 320)),
                    temperature=float(ask.get("temp", 0.6)), top_p=0.9, seed=int(time.time()), on_byte=on_byte)
         self.publish("say", {"id": ask.get("id"), "chunk": "".join(buf) + dec.decode(b"", final=True),
-                             "done": True, "brain": bid})
+                             "done": True, "brain": bid, **trained})
 
     def serve(self, seconds=None):
         """Keep the lab brain available to the headset (the last notebook cell)."""

@@ -324,7 +324,7 @@ class Corpus:
         dev = b"\n".join(read(p) for p in self.DEV)
         held = {l.strip() for l in b"\n".join([self.qroot_bytes, self.gate_bytes, dev]).splitlines()
                 if len(l.strip()) > 8}
-        kept, removed, self.extra, own = [], 0, [], 0
+        kept, removed, self.extra, own, corpus = [], 0, [], 0, 0
         mine = list(self.TRAIN) + [os.path.abspath(x) for x in own_extra]
         for p in mine + [os.path.abspath(x) for x in extra]:
             blob = read(p)
@@ -337,14 +337,18 @@ class Corpus:
                     kept.append(line)
                     if p in mine:
                         own += len(line)
+                    if p in self.TRAIN:
+                        corpus += len(line)
         train = b"".join(kept)
         del kept
         # the MLG's own text comes first; batches draw half their rows from it
         # so a large extra corpus adds knowledge without drowning the MLG's voice
         self.own_bytes = min(own, len(train))
+        self.mlg_bytes = min(corpus, len(train))
         if max_train_bytes:
             train = train[:max_train_bytes]
             self.own_bytes = min(self.own_bytes, len(train))
+            self.mlg_bytes = min(self.mlg_bytes, len(train))
         self.removed_lines = removed
         to = lambda b: torch.frombuffer(bytearray(b), dtype=torch.uint8).to(device)
         self.train, self.dev = to(train), to(dev)
@@ -352,14 +356,23 @@ class Corpus:
         self.held = held
         self.train_hash = hashlib.sha256(train).hexdigest()
 
+    # shares of every batch: the MLG's own corpus, conversations grounded on a
+    # retrieved passage, and the rest (Wikipedia). However large the rest is,
+    # the MLG keeps her own voice.
+    MIX = (0.4, 0.3, 0.3)
+
     def batch(self, B, T):
         dev, n = self.train.device, len(self.train)
-        if n - self.own_bytes > 4 * T and self.own_bytes > T + 1:
-            k = B // 2
-            ix = torch.cat([torch.randint(self.own_bytes - T - 1, (k,), device=dev),
-                            torch.randint(self.own_bytes, n - T - 1, (B - k,), device=dev)])
-        else:
+        regions = [(0, self.mlg_bytes), (self.mlg_bytes, self.own_bytes), (self.own_bytes, n)]
+        usable = [(a, b, w) for (a, b), w in zip(regions, self.MIX) if b - a > 4 * T]
+        if not usable:
             ix = torch.randint(n - T - 1, (B,), device=dev)
+        else:
+            total = sum(w for _, _, w in usable)
+            counts = [int(B * w / total) for _, _, w in usable]
+            counts[0] += B - sum(counts)
+            ix = torch.cat([torch.randint(a, b - T - 1, (k,), device=dev)
+                            for (a, b, _), k in zip(usable, counts) if k > 0])
         w = self.train[ix[:, None] + torch.arange(T + 1, device=ix.device)].long()
         return w[:, :-1], w[:, 1:]
 
