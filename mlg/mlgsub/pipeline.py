@@ -62,9 +62,8 @@ class Run:
             code = self.state.get("link_code") or L.new_code()
             self.save(link_code=code)
             self.log("\n" + "=" * 64 + f"\n  CÓDIGO DE LIGAÇÃO:   {code}\n" + "=" * 64 +
-                     "\n  No Quest: app MLG -> LIGAÇÃO -> digite este código.\n"
-                     "  Para nunca mais digitar: Colab -> Secrets (chave à esquerda) ->\n"
-                     "  MLG_LINK = o código que o app mostra.\n")
+                     "\n  No Quest: app MLG -> LIGAÇÃO -> digite este código -> LIGAR.\n"
+                     "  Ele fica salvo no seu Drive e no app: nas próximas vezes os dois se acham sozinhos.\n")
         try:
             self.lnk = L.Link(code, log=self.log)
         except Exception as e:

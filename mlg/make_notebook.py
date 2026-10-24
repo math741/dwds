@@ -63,7 +63,7 @@ print(f"corpo do laboratório: {{gpu}} · orçamento {{HOURS}} h · Wikipédia {
     code("""#@title 2 · Ligar ao Quest (a mente aparece ao vivo no app)
 from mlgsub.pipeline import Run
 run = Run(HOME, hours=HOURS, quick=not torch.cuda.is_available())
-run.link(secret("MLG_LINK"))"""),
+run.link(secret("MLG_LINK"));"""),
     md("""## I · Despertar
 A MLG pergunta ao driver o que ela é (**REPORTED**) e depois testa (**MEASURED**): memória escrita,
 banda por tamanho (com bisseção do penhasco do cache), formatos numéricos e watts. O corpo de
