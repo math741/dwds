@@ -10,7 +10,8 @@ headset by itself.
 What flows, under mlg/<topic>/...:
     mind    lab -> headset   every object, relation and event the substrate writes, live
     train   lab -> headset   steps, loss and which brain is learning, every couple of seconds
-    say     lab -> headset   the lab brain's answer, streamed
+    say     lab -> headset   the lab brain's answer, streamed; "sealed" when that brain passed
+                             the behaviour suite (until then the headset shows it as a draft)
     ask     headset -> lab   a prompt for the lab brain (the headset routes, retrieves and builds it)
     hello   headset -> lab   a headset arrived: the lab replies with the whole mind so far
     body    headset -> lab   the headset's own measurements (its awakening)
@@ -58,6 +59,7 @@ class Link:
         self.training = None          # what the lab is training right now
         self.training_g = None
         self.brain_seconds = 0
+        self.sealed = None            # the brain that passed the behaviour suite, if any
         self.frac = 0.0
         self.sub = None
         self.field_report = None      # the headset's own measurements
@@ -161,7 +163,7 @@ class Link:
         for i in range(0, len(items), 300):
             self.publish("mind", {"items": items[i:i + 300], "snapshot": True})
         if self.brain:
-            self.publish("train", {"champion": self.brain[2]})
+            self.publish("train", {"champion": self.brain[2], "sealed": self.brain[2] == self.sealed})
 
     # ---- the lab brain answers the headset ---------------------------------
     def commit(self, row):
@@ -169,7 +171,13 @@ class Link:
             self.brain = (row["model"], row["g"], row["brain"])
             self.brain_seconds = row.get("lineage_seconds") or row.get("seconds") or 0
             self.publish("train", {"champion": row["brain"], "params": row["params"],
-                                   "trained_s": round(self.brain_seconds)})
+                                   "trained_s": round(self.brain_seconds), "sealed": row["brain"] == self.sealed})
+
+    def seal(self, brain_id):
+        """This brain passed the behaviour suite: from now on its answers are answers, not drafts."""
+        self.sealed = brain_id
+        if self.brain and self.brain[2] == brain_id:
+            self.publish("train", {"champion": brain_id, "sealed": True})
 
     def tick(self, model=None, steps=0, frac=0.0, loss=None):
         """Between training steps: report progress, answer what the headset asked.
@@ -192,6 +200,7 @@ class Link:
             self.publish("say", {"id": ask.get("id"), "err": "the lab has no committed brain yet", "done": True})
             return
         m, g, bid = brain
+        trained["sealed"] = model is None and bid == self.sealed
         dec, buf, sent = codecs.getincrementaldecoder("utf-8")("replace"), [], [0]
 
         def on_byte(b):

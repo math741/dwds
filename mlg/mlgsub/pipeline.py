@@ -243,6 +243,8 @@ class Run:
         _, report = behaviour.run(core=core, know=os.path.join(out, "know.mlgk"),
                                   router=os.path.join(out, "router.mlgr"), log=self.log)
         self.behaviour = report
+        if report["passed"] and self.lnk:
+            self.lnk.seal(c["brain"])
         self.sub.obj("Evaluation", f"eval:{c['brain']}:behaviour", origin="behaviour.run", epistemic="MEASURED",
                      must=f"{report['must_passed']}/{report['must']}",
                      quality=f"{report['quality_passed']}/{report['quality']}", passed=report["passed"])

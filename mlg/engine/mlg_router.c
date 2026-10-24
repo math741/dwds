@@ -24,32 +24,57 @@ struct mlg_router {
     float *bias, *w;
 };
 
-mlg_router *mlg_router_open(const char *path, char *err, int errlen) {
-#define FAIL(...) do { if (err) snprintf(err, errlen, __VA_ARGS__); if (fh) fclose(fh); mlg_router_close(r); return NULL; } while (0)
+typedef struct {
+    const unsigned char *p, *end;
+} rd;
+
+static int get(rd *r, void *out, size_t n) {
+    if ((size_t)(r->end - r->p) < n) return 0;
+    memcpy(out, r->p, n);
+    r->p += n;
+    return 1;
+}
+
+/* the router from its bytes (the browser has no files); the bytes are not kept */
+mlg_router *mlg_router_open_mem(const unsigned char *bytes, long size, char *err, int errlen) {
+#define FAIL(...) do { if (err) snprintf(err, errlen, __VA_ARGS__); mlg_router_close(r); return NULL; } while (0)
     mlg_router *r = calloc(1, sizeof *r);
-    FILE *fh = fopen(path, "rb");
+    rd in = {bytes, bytes + size};
     uint32_t hdr[4];
-    if (!r || !fh || fread(hdr, 4, 4, fh) != 4) FAIL("cannot read %s", path);
+    if (!r || !get(&in, hdr, 16)) FAIL("truncated router");
     if (memcmp(hdr, "MLGR", 4) || hdr[1] != 1 || hdr[2] == 0 || hdr[2] > 256 || hdr[3] == 0 ||
         (hdr[3] & (hdr[3] - 1)) || hdr[3] > (1u << 22))
-        FAIL("%s is not an MLGR v1 router", path);
+        FAIL("not an MLGR v1 router");
     r->n = hdr[2], r->dim = hdr[3];
     r->names = calloc(r->n, sizeof(char *));
     if (!r->names) FAIL("out of memory");
     for (uint32_t i = 0; i < r->n; i++) {
         uint32_t len;
-        if (fread(&len, 4, 1, fh) != 1 || len > 255 || !(r->names[i] = calloc(len + 1, 1)) ||
-            fread(r->names[i], 1, len, fh) != len)
+        if (!get(&in, &len, 4) || len > 255 || !(r->names[i] = calloc(len + 1, 1)) || !get(&in, r->names[i], len))
             FAIL("truncated router");
     }
     r->bias = malloc(sizeof(float) * r->n);
     r->w = malloc(sizeof(float) * r->n * r->dim);
-    if (!r->bias || !r->w || fread(r->bias, 4, r->n, fh) != r->n ||
-        fread(r->w, 4, (size_t)r->n * r->dim, fh) != (size_t)r->n * r->dim)
+    if (!r->bias || !r->w || !get(&in, r->bias, sizeof(float) * r->n) ||
+        !get(&in, r->w, sizeof(float) * r->n * r->dim))
         FAIL("truncated router");
-    fclose(fh);
     return r;
 #undef FAIL
+}
+
+mlg_router *mlg_router_open(const char *path, char *err, int errlen) {
+    FILE *fh = fopen(path, "rb");
+    if (!fh) { if (err) snprintf(err, errlen, "cannot read %s", path); return NULL; }
+    fseek(fh, 0, SEEK_END);
+    const long size = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+    unsigned char *b = malloc(size > 0 ? size : 1);
+    const long got = b ? (long)fread(b, 1, size, fh) : 0;
+    fclose(fh);
+    mlg_router *r = got == size ? mlg_router_open_mem(b, size, err, errlen) : NULL;
+    if (got != size && err) snprintf(err, errlen, "cannot read %s", path);
+    free(b);
+    return r;
 }
 
 void mlg_router_close(mlg_router *r) {

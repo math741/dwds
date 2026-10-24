@@ -103,22 +103,31 @@ static void layernorm(const float *x, const float *w, const float *b, float *out
 static float gelu(float x) { return 0.5f * x * (1.f + erff(x * 0.70710678118654752f)); }
 
 mlg_core *mlg_core_open(const char *path, char *err, int errlen) {
-#define FAIL(...) do { if (err) snprintf(err, errlen, __VA_ARGS__); mlg_core_close(c); return NULL; } while (0)
-    mlg_core *c = calloc(1, sizeof *c);
     FILE *fh = fopen(path, "rb");
-    if (!c || !fh) {
-        if (fh) fclose(fh);
-        FAIL("cannot open %s", path);
+    if (!fh) {
+        if (err) snprintf(err, errlen, "cannot open %s", path);
+        return NULL;
     }
     fseek(fh, 0, SEEK_END);
-    long size = ftell(fh);
+    const long size = ftell(fh);
     fseek(fh, 0, SEEK_SET);
-    c->blob = malloc(size > 0 ? size : 1);
-    if (!c->blob || fread(c->blob, 1, size, fh) != (size_t)size) {
+    unsigned char *blob = malloc(size > 0 ? size : 1);
+    if (!blob || fread(blob, 1, size, fh) != (size_t)size) {
         fclose(fh);
-        FAIL("cannot read %s", path);
+        free(blob);
+        if (err) snprintf(err, errlen, "cannot read %s", path);
+        return NULL;
     }
     fclose(fh);
+    return mlg_core_open_mem(blob, size, err, errlen);
+}
+
+mlg_core *mlg_core_open_mem(unsigned char *blob, long size, char *err, int errlen) {
+#define FAIL(...) do { if (err) snprintf(err, errlen, __VA_ARGS__); mlg_core_close(c); return NULL; } while (0)
+    mlg_core *c = calloc(1, sizeof *c);
+    if (!c) { free(blob); return NULL; }
+    c->blob = blob;
+    const char *path = "brain";
     reader r = {c->blob, c->blob + size};
     const uint32_t *hdr = take(&r, 40);
     if (!hdr || memcmp(hdr, "MLGB", 4) || hdr[1] != 1) FAIL("%s is not an MLGB v1 brain", path);

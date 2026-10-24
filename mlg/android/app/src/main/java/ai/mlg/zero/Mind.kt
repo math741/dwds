@@ -36,6 +36,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     private val brains = Brains(dir, BuildConfig.BRAIN_URL, { note(it) },
         { name, got, total -> emit("download", JSONObject().put("name", name).put("got", got).put("total", total)) })
     private val worker = Executors.newSingleThreadExecutor()  // one thought at a time
+    private val drafts = Executors.newSingleThreadExecutor()  // the lab brain's attempts, beside the answers
     private val mind = Native.mindNew(File(dir, "memory.jsonl").path)
     private var core = 0L
     private var know = 0L
@@ -45,6 +46,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     private var prefillMs = 0.0
     private var link: Link? = null
     @Volatile private var labBrain: String? = null
+    @Volatile private var labSealed = false  // the lab brain passed the behaviour suite: its answers are answers
     @Volatile private var labTrain: JSONObject? = null
     private val labReplies = ConcurrentHashMap<String, LinkedBlockingQueue<JSONObject>>()
     val body = JSONObject()
@@ -193,7 +195,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             "mind" -> emit("mind", data)
             "train" -> {
                 if (data.has("steps")) labTrain = data
-                data.optString("champion").takeIf { it.isNotEmpty() }?.let { labBrain = it }
+                data.optString("champion").takeIf { it.isNotEmpty() }?.let { labBrain = it; labSealed = data.optBoolean("sealed") }
                 emit("train", data)
             }
             "say" -> labReplies[data.optString("id")]?.offer(data)
@@ -244,24 +246,34 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
                 reply(th.getString("reply"), organ)
                 return
             }
-            // a Resident Core speaks: the lab's when the link is up, this body's otherwise
-            labBrain?.takeIf { link?.connected == true }?.let {
-                askLab(String(Native.thoughtPrompt(t)))?.let { (raw, info) ->
-                    reply(String(Native.mindFinish(mind, t, raw.toByteArray())), "lab:$info")
-                    return
-                }
+            // a Resident Core speaks: the lab's when it passed the behaviour suite, this body's otherwise
+            val prompt = String(Native.thoughtPrompt(t))
+            val online = labBrain != null && link?.connected == true
+            if (online && labSealed) askLab(prompt, "say_chunk")?.let { (raw, info) ->
+                reply(String(Native.mindFinish(mind, t, raw.toByteArray())), "lab:$info")
+                return
             }
             emit("thinking", JSONObject().put("organ", "core"))
             val stream = Utf8Stream { emit("say_chunk", JSONObject().put("text", it)) }
             val out = String(Native.mindSpeak(mind, t, System.nanoTime(), Native.ByteSink { b -> stream.push(b); false }))
             reply(out, if (core != 0L) "core" else if (th.optString("evidence").isNotEmpty()) "knowledge" else "trust")
+            // a brain still evolving does not answer, but you can watch it try
+            if (online && !labSealed) drafts.execute {
+                runCatching {
+                    askLab(prompt, "draft_chunk")?.let { (raw, info) ->
+                        val line = raw.trim().removePrefix("M:").trim().substringBefore('\n').take(320)
+                        emit("draft", JSONObject().put("text", line).put("info", info))
+                    }
+                }
+            }
         } finally {
             Native.thoughtFree(t)
         }
     }
 
-    /** The lab brain's raw continuation and how much training it carries ("3 min de treino", "amadurecendo 40%"). */
-    private fun askLab(prompt: String): Pair<String, String>? {
+    /** The lab brain's raw continuation and how much training it carries ("3 min de treino", "amadurecendo 40%"),
+     *  streamed to the HUD as [chunks]. */
+    private fun askLab(prompt: String, chunks: String): Pair<String, String>? {
         val id = UUID.randomUUID().toString().take(8)
         val q = LinkedBlockingQueue<JSONObject>()
         labReplies[id] = q
@@ -276,7 +288,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
                 if (m.has("err")) return null
                 info = if (m.has("maturing")) "amadurecendo ${(m.optDouble("maturing") * 100).toInt()}%"
                        else "${maxOf(1, m.optInt("trained_s") / 60)} min de treino"
-                m.optString("chunk").takeIf { it.isNotEmpty() }?.let { sb.append(it); emit("say_chunk", JSONObject().put("text", it)) }
+                m.optString("chunk").takeIf { it.isNotEmpty() }?.let { sb.append(it); emit(chunks, JSONObject().put("text", it)) }
                 if (m.optBoolean("done")) return sb.toString() to info
                 wait = 15L
             }
@@ -286,6 +298,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     }
 
     fun close() {
+        drafts.shutdownNow()
         link?.stop()
         voice.close()
         Native.mindFree(mind)

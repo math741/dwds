@@ -320,7 +320,7 @@ requestAnimationFrame(frame);
 
 // ---- panels --------------------------------------------------------------------
 const log = $("log");
-let streaming = null;
+let streaming = null, drafting = null;
 function addMsg(cls, who, text, organ) {
   const m = document.createElement("div");
   m.className = "msg " + cls;
@@ -338,7 +338,7 @@ function addMsg(cls, who, text, organ) {
   log.scrollTop = log.scrollHeight;
   return m;
 }
-const ORGAN_NAME = { social: "SOCIAL", procedural: "CÁLCULO · EXATO", memory: "MEMÓRIA", body: "CORPO", lab: "LABORATÓRIO", core: "RESIDENT CORE",
+const ORGAN_NAME = { self: "AUTOCONHECIMENTO", social: "SOCIAL", procedural: "CÁLCULO · EXATO", memory: "MEMÓRIA", body: "CORPO", lab: "LABORATÓRIO", core: "RESIDENT CORE",
   knowledge: "BUSCA", chat: "CORE", trust: "TRUST CORE" };
 function organName(o) {
   if (!o) return "";
@@ -450,6 +450,17 @@ window.mlg = {
         addMsg("", "MLG", d.text, organName(d.organ));
         speaking = 0.6;
         renderTrust();
+        break;
+      case "draft_chunk":
+        if (!drafting) { drafting = addMsg("draft", "CÉREBRO EM EVOLUÇÃO · TENTANDO", ""); drafting.querySelector(".text").innerHTML = '<span class="t"></span><span class="cursor"></span>'; }
+        drafting.querySelector(".t").textContent += d.text;
+        log.scrollTop = log.scrollHeight;
+        pulse("lab");
+        break;
+      case "draft":
+        if (drafting) drafting.remove();
+        drafting = null;
+        if (d.text) addMsg("draft", "RASCUNHO DO CÉREBRO DO LAB", d.text, (d.info || "").toUpperCase());
         break;
       case "speaking": speaking = d.v === "1" ? 1 : 0; break;
       case "level": level = Math.min(1, Math.max(0, (parseFloat(d.v) + 2) / 12)); break;

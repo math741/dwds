@@ -38,6 +38,8 @@ typedef struct {
 typedef int (*mlg_on_byte)(uint8_t byte, void *user);
 
 mlg_core *mlg_core_open(const char *path, char *err, int errlen);
+/* the same from bytes in memory, which the core takes over (freed on close) */
+mlg_core *mlg_core_open_mem(unsigned char *blob, long size, char *err, int errlen);
 void mlg_core_close(mlg_core *c);
 mlg_core_info mlg_core_get_info(const mlg_core *c);
 void mlg_core_reset(mlg_core *c);
@@ -62,6 +64,7 @@ int mlg_get_threads(void);
 typedef struct mlg_know mlg_know;
 
 mlg_know *mlg_know_open(const char *path, char *err, int errlen);
+mlg_know *mlg_know_open_mem(unsigned char *bytes, long size, char *err, int errlen);  /* takes the bytes */
 void mlg_know_close(mlg_know *k);
 int mlg_know_count(const mlg_know *k);
 /* Best k passages for a query: ids and BM25 scores, best first. Returns how many. */
@@ -77,6 +80,7 @@ int mlg_know_build(const char *tsv, const char *out_path, float max_df, char *er
 typedef struct mlg_router mlg_router;
 
 mlg_router *mlg_router_open(const char *path, char *err, int errlen);
+mlg_router *mlg_router_open_mem(const unsigned char *bytes, long size, char *err, int errlen);
 void mlg_router_close(mlg_router *r);
 int mlg_router_count(const mlg_router *r);
 const char *mlg_router_name(const mlg_router *r, int intent);
@@ -117,6 +121,9 @@ int mlg_mind_speak(mlg_mind *m, const mlg_thought *t, char *out, int cap, mlg_on
 int mlg_mind_thought_json(const mlg_mind *m, const mlg_thought *t, char *out, int cap);
 int mlg_mind_memory_count(const mlg_mind *m);
 const char *mlg_mind_memory_text(const mlg_mind *m, int i);
+/* memory as JSON lines, out and in, for hosts without files (the browser) */
+int mlg_mind_memory_dump(const mlg_mind *m, char *out, int cap);
+void mlg_mind_memory_load(mlg_mind *m, const char *lines);
 
 /* Text normalization shared by retrieval and routing: lowercase, accents
  * folded, everything that is not a letter or digit becomes a space. */

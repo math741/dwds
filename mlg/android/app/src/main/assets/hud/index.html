@@ -42,6 +42,9 @@
   .msg .who { font-size: 10px; letter-spacing: 0.2em; color: var(--muted); margin-bottom: 3px; }
   .msg .who .organ { color: var(--void); background: var(--teal); padding: 0 6px; margin-left: 6px; letter-spacing: 0.12em; }
   .msg.user .who { color: var(--orange); }
+  .msg.draft { border-left: 2px dashed var(--violet); background: rgba(157,123,255,0.05); color: #c9bdf5; font-size: 12px; font-style: italic; margin-left: 18px; }
+  .msg.draft .who { color: var(--violet); }
+  .msg.draft .who .organ { background: var(--violet); }
   .msg.note { border-left-color: var(--gold); background: rgba(255,209,102,0.05); color: #f3e3b0; font-size: 12px; }
   .cursor { display: inline-block; width: 8px; height: 14px; background: var(--teal); vertical-align: -2px; animation: blink 0.9s steps(1) infinite; }
   @keyframes blink { 50% { opacity: 0; } }

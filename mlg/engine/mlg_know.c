@@ -9,14 +9,16 @@
  *   strings:  title bytes followed by text bytes, at each doc's off
  * The file is mapped, not read: a large index costs disk, not memory.
  */
-#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined(__wasi__)
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 #include "mlg.h"
 
@@ -33,6 +35,7 @@ typedef struct {
 struct mlg_know {
     unsigned char *map;
     size_t size;
+    int owned;        /* map is a heap copy (browser), not a mapping */
     uint32_t n_docs, n_terms;
     float avgdl, k1, b;
     const doc_rec *docs;
@@ -42,28 +45,15 @@ struct mlg_know {
     uint32_t *touched;
 };
 
-mlg_know *mlg_know_open(const char *path, char *err, int errlen) {
+static mlg_know *know_parse(mlg_know *k, char *err, int errlen) {
 #define FAIL(...) do { if (err) snprintf(err, errlen, __VA_ARGS__); mlg_know_close(k); return NULL; } while (0)
-    mlg_know *k = calloc(1, sizeof *k);
-    int fd = open(path, O_RDONLY);
-    struct stat st;
-    if (!k || fd < 0 || fstat(fd, &st) || st.st_size < 64) {
-        if (fd >= 0) close(fd);
-        FAIL("cannot open %s", path);
-    }
-    k->size = st.st_size;
-    k->map = mmap(NULL, k->size, PROT_READ, MAP_PRIVATE, fd, 0);
-    close(fd);
-    if (k->map == MAP_FAILED) {
-        k->map = NULL;
-        FAIL("cannot map %s", path);
-    }
     const unsigned char *p = k->map;
     uint32_t u[8];
     uint64_t off[4];
+    if (k->size < 64) FAIL("truncated index");
     memcpy(u, p, 32);
     memcpy(off, p + 32, 32);
-    if (memcmp(p, "MLGK", 4) || u[1] != 1) FAIL("%s is not an MLGK v1 index", path);
+    if (memcmp(p, "MLGK", 4) || u[1] != 1) FAIL("not an MLGK v1 index");
     k->n_docs = u[2], k->n_terms = u[3];
     memcpy(&k->avgdl, &u[4], 4), memcpy(&k->k1, &u[5], 4), memcpy(&k->b, &u[6], 4);
     if (off[0] + (uint64_t)k->n_docs * sizeof(doc_rec) > k->size ||
@@ -80,9 +70,55 @@ mlg_know *mlg_know_open(const char *path, char *err, int errlen) {
 #undef FAIL
 }
 
+/* the browser has no files to map: the index arrives as bytes (owned from now on) */
+mlg_know *mlg_know_open_mem(unsigned char *bytes, long size, char *err, int errlen) {
+    mlg_know *k = calloc(1, sizeof *k);
+    if (!k) { free(bytes); return NULL; }
+    k->map = bytes, k->size = (size_t)size, k->owned = 1;
+    return know_parse(k, err, errlen);
+}
+
+mlg_know *mlg_know_open(const char *path, char *err, int errlen) {
+#if defined(__wasi__)
+    FILE *fh = fopen(path, "rb");
+    if (!fh) { if (err) snprintf(err, errlen, "cannot open %s", path); return NULL; }
+    fseek(fh, 0, SEEK_END);
+    const long size = ftell(fh);
+    fseek(fh, 0, SEEK_SET);
+    unsigned char *b = malloc(size > 0 ? size : 1);
+    const long got = b ? (long)fread(b, 1, size, fh) : 0;
+    fclose(fh);
+    if (got != size) { free(b); if (err) snprintf(err, errlen, "cannot read %s", path); return NULL; }
+    return mlg_know_open_mem(b, size, err, errlen);
+#else
+    mlg_know *k = calloc(1, sizeof *k);
+    int fd = open(path, O_RDONLY);
+    struct stat st;
+    if (!k || fd < 0 || fstat(fd, &st) || st.st_size < 64) {
+        if (fd >= 0) close(fd);
+        if (err) snprintf(err, errlen, "cannot open %s", path);
+        free(k);
+        return NULL;
+    }
+    k->size = st.st_size;
+    k->map = mmap(NULL, k->size, PROT_READ, MAP_PRIVATE, fd, 0);
+    close(fd);
+    if (k->map == MAP_FAILED) {
+        k->map = NULL;
+        if (err) snprintf(err, errlen, "cannot map %s", path);
+        free(k);
+        return NULL;
+    }
+    return know_parse(k, err, errlen);
+#endif
+}
+
 void mlg_know_close(mlg_know *k) {
     if (!k) return;
-    if (k->map) munmap(k->map, k->size);
+#if !defined(__wasi__)
+    if (k->map && !k->owned) munmap(k->map, k->size);
+#endif
+    if (k->owned) free(k->map);
     free(k->score), free(k->touched), free(k);
 }
 

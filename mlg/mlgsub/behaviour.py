@@ -4,6 +4,8 @@ headset runs it, put through what it must do before anything is published.
 Every "must" line has to pass. "quality" lines go through a Resident Core and
 are scored: an answer passes when it routes to an expected organ, matches what
 it must, avoids what it must not, and is not empty, looping or overlong.
+"bare" lines are what a body with no organ from the lab yet must still do; they
+run only on a bare mind (no core, no knowledge, no router).
 """
 import os
 import re
@@ -33,8 +35,9 @@ def run(core=None, know=None, router=None, log=print, rows=None):
     m.clock()
     m.lab("O laboratório está ligado. Treinando agora.")
     results = []
+    bare = core is None and know is None and router is None
     for r in rows or load():
-        if r["gate"] == "quality" and core is None:
+        if (r["gate"] == "quality" and core is None) or (r["gate"] == "bare") != bare:
             continue
         organ, reply = m.ask(r["input"])
         why = []
@@ -50,7 +53,7 @@ def run(core=None, know=None, router=None, log=print, rows=None):
     m.close()
     if os.path.exists(memory):
         os.remove(memory)
-    must = [x for x in results if x["gate"] == "must"]
+    must = [x for x in results if x["gate"] in ("must", "bare")]
     quality = [x for x in results if x["gate"] == "quality"]
     report = {"must_passed": sum(x["ok"] for x in must), "must": len(must),
               "quality_passed": sum(x["ok"] for x in quality), "quality": len(quality)}

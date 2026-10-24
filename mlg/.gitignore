@@ -9,3 +9,4 @@ build/
 local.properties
 android/app/build/
 android/app/.cxx/
+engine/libmlg.so

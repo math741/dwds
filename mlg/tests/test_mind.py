@@ -23,7 +23,15 @@ def main():
     R.write(os.path.join(tmp, "router.mlgr"), w, b)
     _, report = behaviour.run(know=os.path.join(tmp, "know.mlgk"), router=os.path.join(tmp, "router.mlgr"))
     assert report["passed"], report
-    print("the mind passes the behaviour suite")
+    # a headset before the lab has sent anything: still useful, never the same sentence twice
+    _, report = behaviour.run()
+    assert report["passed"], report
+    from mlgsub.mind import Mind
+    m = Mind()
+    said = [m.ask(q)[1] for q in ("chora baby", "me fala de vulcões", "quem ganhou a copa")]
+    assert len(set(said)) == 3 and all("não" in s.lower() for s in said), said
+    m.close()
+    print("the mind passes the behaviour suite, with its organs and bare")
 
 
 if __name__ == "__main__":

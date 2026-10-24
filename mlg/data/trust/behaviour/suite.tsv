@@ -2,6 +2,7 @@
 # gate	input	organs (any of)	must match (regex, case-insensitive)	must not match
 # "must": no Resident Core needed; every line passes, or nothing is published.
 # "quality": answers that go through a Resident Core; a share of them must pass.
+# "bare": a body with no organ from the lab yet (no router, no knowledge, no core): every line passes.
 must	Oi	social	.	
 must	Eai	social	.	
 must	valeu mlg	social	.	
@@ -23,6 +24,10 @@ must	quem é você	knowledge	MLG
 must	o que é a mlg	knowledge	MLG	
 must	qual a capital da alemanha?	social|procedural|memory|body|lab|knowledge|core	.	paris
 must	como está a evolução?	lab	.	
+must	o que você sabe fazer?	self	contas.*memória|lembrar	
+must	Oque se pode fazer?	self	contas	
+must	V	self	\bV\b	
+must	o que você não sabe fazer?	knowledge	.	
 quality	o que é fotossíntese?	knowledge|core	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
 quality	me conta uma curiosidade	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
 quality	o que é a gravidade?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
@@ -31,3 +36,15 @@ quality	você gosta de música?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densi
 quality	o que você acha de inteligência artificial?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
 quality	explica como funciona um vulcão	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
 quality	por que o céu é azul?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+bare	Eai	social	.	
+bare	V	self	\bV\b	
+bare	Oque se pode fazer?	self	contas	Resident Core conversa
+bare	quanto é 7 vezes 8	procedural	= 56\b	
+bare	que horas são?	procedural	\d\d:\d\d	
+bare	meu nome é Ana	memory	Ana	
+bare	qual é meu nome?	memory	seu nome é ana	
+bare	como está sua bateria?	body	bateria	
+bare	quem é você	self	MLG	
+bare	como está a evolução?	lab	.	
+bare	Chora baby	core|trust	chora baby	não chegou do laborat[óo]rio, e não achei
+bare	me fala sobre dinossauros	core|trust	dinossauros	

@@ -45,6 +45,9 @@ struct mlg_mind {
     unsigned turn;
 };
 
+static void json_escape(const char *s, char *out, int cap);
+static int has_digit(const char *w);
+
 /* ---- small text helpers ----------------------------------------------------- */
 static int norm(const char *s, char *out, int cap) {
     const int n = mlg_normalize(s, (int)strlen(s), out, cap - 1);
@@ -171,6 +174,30 @@ void mlg_mind_lab(mlg_mind *m, const char *status) { copy(m->lab, sizeof m->lab,
 void mlg_mind_clock(mlg_mind *m, long long unix_seconds, int tz_minutes) { m->now = unix_seconds, m->tz_minutes = tz_minutes; }
 
 int mlg_mind_memory_count(const mlg_mind *m) { return m->n_facts; }
+
+/* the memory as JSON lines (what the memory file holds), for hosts without files */
+int mlg_mind_memory_dump(const mlg_mind *m, char *out, int cap) {
+    int o = 0;
+    for (int i = 0; i < m->n_facts && o < cap; i++) {
+        char k[100], v[FACT_LEN * 2];
+        json_escape(m->facts[i].key, k, sizeof k);
+        json_escape(m->facts[i].text, v, sizeof v);
+        o += snprintf(out + o, cap - o, "{\"t\":%lld,\"k\":\"%s\",\"v\":\"%s\"}\n", m->facts[i].at, k, v);
+    }
+    return o < cap ? o : cap - 1;
+}
+
+void mlg_mind_memory_load(mlg_mind *m, const char *lines) {
+    char line[1024], key[48], text[FACT_LEN], at[32];
+    for (const char *p = lines; p && *p;) {
+        const char *nl = strchr(p, '\n');
+        const int n = nl ? (int)(nl - p) : (int)strlen(p);
+        snprintf(line, sizeof line, "%.*s", n, p);
+        field(line, "k", key, sizeof key), field(line, "v", text, sizeof text), field(line, "t", at, sizeof at);
+        if (text[0]) add_fact(m, atoll(at), key, text);
+        p = nl ? nl + 1 : NULL;
+    }
+}
 const char *mlg_mind_memory_text(const mlg_mind *m, int i) { return i >= 0 && i < m->n_facts ? m->facts[i].text : ""; }
 
 static const char *remember_prefixes[] = {
@@ -315,6 +342,81 @@ static const char *social(mlg_mind *m, const char *text) {
             return SOCIAL[r].reply[m->turn % k];
         }
     return NULL;
+}
+
+/* ---- self: what the MLG is and what this body can do now -------------------------- */
+/* answered from the organs actually present, so it is true on every body and in every phase */
+static const char *ABILITY[] = {"pode fazer", "sabe fazer", "consegue fazer", "voce faz", "vc faz", "tu faz", "voce serve",
+                                "vc serve", "suas funcoes", "suas habilidades", "suas capacidades", "seus poderes",
+                                "pode me ajudar", "consegue me ajudar", "da pra fazer", "posso fazer com voce",
+                                "posso te perguntar", "posso perguntar", "como te uso", "como usar voce", NULL};
+static const char *ABILITY_WHOLE[] = {"ajuda", "help", "comandos", "menu", "funcoes", "o que voce sabe", "oque voce sabe",
+                                      "o que vc sabe", "oque vc sabe", "e agora", "o que eu faco", "oque eu faco", NULL};
+static const char *IDENTITY_WHOLE[] = {"quem e voce", "quem e vc", "quem es tu", "quem e tu", "o que e voce", "oque e voce",
+                                       "qual seu nome", "qual o seu nome", "qual e o seu nome", "qual e seu nome",
+                                       "como voce se chama", "como vc se chama", "voce e quem", NULL};
+
+static int asks_ability(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    char *mlg = strstr(n, " mlg");
+    if (mlg && mlg[4] == 0) *mlg = 0;
+    for (const char **x = ABILITY_WHOLE; *x; x++)
+        if (!strcmp(n, *x)) return 1;
+    int nw = n[0] ? 1 : 0;
+    for (char *p = n; *p; p++) nw += *p == ' ';
+    if (nw > 9 || strstr(n, "nao ")) return 0;  /* "o que você não sabe fazer" is the corpus's to answer */
+    for (const char **x = ABILITY; *x; x++)
+        if (strstr(n, *x)) return 1;
+    return 0;
+}
+
+static int asks_identity(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    for (const char **x = IDENTITY_WHOLE; *x; x++)
+        if (!strcmp(n, *x)) return 1;
+    return 0;
+}
+
+static void abilities(const mlg_mind *m, char *out, int cap) {
+    int o = snprintf(out, cap, "Agora eu sei: fazer contas exatas (\"15%% de 200\"), dizer a hora e a data, lembrar o que "
+                               "você me contar (\"lembra que...\", \"meu nome é...\"), medir meu corpo (\"como está sua bateria?\")");
+    if (m->know) {
+        const int k = mlg_know_count(m->know);
+        if (k >= 2000) o += snprintf(out + o, cap - o, ", responder pelo meu conhecimento (%d mil trechos)", k / 1000);
+        else o += snprintf(out + o, cap - o, ", responder pelo meu conhecimento");
+    }
+    o += snprintf(out + o, cap - o, " e mostrar meu cérebro evoluindo (\"como está a evolução?\").");
+    if (m->core) snprintf(out + o, cap - o, " Para o resto, quem conversa é meu Resident Core.");
+    else snprintf(out + o, cap - o, " Meu Resident Core ainda está amadurecendo no laboratório; quando chegar, eu converso "
+                                    "sobre qualquer coisa.");
+}
+
+/* nothing in the input says what is wanted: no word of three letters, no number */
+static int says_nothing(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    char *w[64];
+    const int nw = words(n, w, 64);
+    for (int i = 0; i < nw; i++)
+        if (has_digit(w[i]) || strlen(w[i]) >= 3) return 0;
+    return 1;
+}
+
+/* the input, short enough to quote back */
+static void quote(const char *text, char *out, int cap) {
+    char q[64];
+    int n = snprintf(q, sizeof q, "%s", text);
+    if (n >= (int)sizeof q) {
+        n = sizeof q - 1;
+        while (n > 0 && ((unsigned char)q[n] & 0xC0) == 0x80) n--;  /* never cut a character in half */
+        q[n] = 0;
+        snprintf(out, cap, "%s…", q);
+    } else {
+        snprintf(out, cap, "%s", q);
+    }
+    trim(out);
 }
 
 /* ---- procedural: arithmetic in words or symbols -------------------------------- */
@@ -726,6 +828,10 @@ static int own_answer(const mlg_mind *m, const char *question, int id, char *out
         const double c = content_dice(question, q, &content);
         if (content ? c >= 0.8 : overlap(question, q) >= 0.9) {
             snprintf(out, cap, "%.*s", xl, text);
+            /* the corpus remembers the body the MLG was first designed for; the body it is in now is measured */
+            char dev[128];
+            if (strstr(out, "Raspberry") && body_get(m, "device", dev, sizeof dev) && !strstr(dev, "Raspberry"))
+                snprintf(out + strlen(out), cap - strlen(out), " Hoje meu corpo é um %s, medido por mim.", dev);
             return 1;
         }
     }
@@ -790,6 +896,21 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
         return t->final = 1;
     }
     const int about_user = !strcmp(in, "remember") || !strcmp(in, "recall");
+    if (!about_user && asks_ability(text)) {
+        abilities(m, t->reply, sizeof t->reply);
+        copy(t->organ, sizeof t->organ, "self");
+        return t->final = 1;
+    }
+    if (says_nothing(text)) {
+        char q[96];
+        quote(text, q, sizeof q);
+        static const char *ASK[] = {"Não entendi \"%s\". Pode falar com mais palavras? Para saber o que eu faço, pergunte "
+                                    "\"o que você sabe fazer?\".",
+                                    "\"%s\"? Me diga um pouco mais.", "Não peguei o que você quis dizer com \"%s\". Pode repetir?"};
+        snprintf(t->reply, sizeof t->reply, ASK[m->turn % 3], q);
+        copy(t->organ, sizeof t->organ, "self");
+        return t->final = 1;
+    }
     /* an expression the procedural expert can compute exactly, whatever the router thought */
     if (!about_user && procedural_math(text, buf, sizeof buf) > 0) {
         copy(t->organ, sizeof t->organ, "procedural"), copy(t->reply, sizeof t->reply, buf);
@@ -810,6 +931,13 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
                 copy(t->organ, sizeof t->organ, "knowledge"), copy(t->reply, sizeof t->reply, buf);
                 return t->final = 1;
             }
+    }
+    /* who it is, on a body whose corpus has not arrived */
+    if (asks_identity(text)) {
+        copy(t->reply, sizeof t->reply, "Sou a MLG: uma mente que nasceu do zero, sem modelo pronto. Meço o corpo em que estou, "
+                                        "aprendo no laboratório e cada cérebro meu só chega aqui depois de passar no selo.");
+        copy(t->organ, sizeof t->organ, "self");
+        return t->final = 1;
     }
     if (!strcmp(in, "time")) {
         procedural_time(m, text, t->reply, sizeof t->reply);
@@ -991,8 +1119,26 @@ void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, c
 int mlg_mind_speak(mlg_mind *m, const mlg_thought *t, char *out, int cap, mlg_on_byte cb, void *user, uint64_t seed) {
     if (t->final) { copy(out, cap, t->reply); return 1; }
     if (!m->core) {
-        if (t->evidence[0]) mlg_mind_finish(m, t, "", out, cap);
-        else copy(out, cap, "Meu Resident Core ainda não chegou do laboratório, e não achei isso no meu conhecimento.");
+        if (t->evidence[0]) { mlg_mind_finish(m, t, "", out, cap); return 0; }
+        /* what was asked, quoted back: an honest "not yet", never the same sentence twice in a row */
+        const char *u = strstr(t->prompt, "U: ");
+        char q[1024] = "", qq[96];
+        if (u) copy(q, sizeof q, u + 3);
+        char *e = strstr(q, "\nM:");
+        if (e) *e = 0;
+        quote(q, qq, sizeof qq);
+        static const char *NOT_YET[2][3] = {
+            {"Ainda não sei sobre \"%s\": meu conhecimento e meu Resident Core ainda estão no laboratório. Agora eu "
+             "respondo contas, hora, memória e meu corpo.",
+             "Sobre \"%s\" eu ainda não tenho nada: meus órgãos de conhecimento não chegaram. Se for importante, me ensine: "
+             "\"lembra que...\".",
+             "\"%s\": isso eu ainda não sei. Pergunte \"o que você sabe fazer?\" para ver o que já funciona neste corpo."},
+            {"Sobre \"%s\" eu não achei nada no meu conhecimento. Meu Resident Core ainda está amadurecendo; quando chegar, "
+             "eu converso sobre isso.",
+             "Ainda não sei nada sobre \"%s\". Se for importante, me ensine: \"lembra que...\".",
+             "Não encontrei \"%s\" no que eu sei. Por enquanto respondo contas, hora, memória, meu corpo e o que está no meu "
+             "conhecimento."}};
+        snprintf(out, cap, NOT_YET[m->know != NULL][m->turn % 3], qq);
         return 0;
     }
     uint8_t raw[400];
