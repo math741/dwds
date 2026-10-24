@@ -37,8 +37,21 @@ jobs:
     timeout-minutes: 60
     env:
       WIKI_MB: "128"
+    outputs:
+      pages: ${{ steps.pages.outputs.enabled }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Is GitHub Pages on?
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/pages" > /dev/null 2>&1; then echo "enabled=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=no" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages está desligado: a página é montada e testada, mas não publicada. Ligue em Settings -> Pages -> Source: GitHub Actions."
+          fi
 
       - uses: actions/setup-python@v5
         with:
@@ -85,6 +98,7 @@ jobs:
 
   deploy:
     needs: build
+    if: needs.build.outputs.pages == 'yes'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
