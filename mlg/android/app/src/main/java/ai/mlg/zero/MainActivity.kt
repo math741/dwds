@@ -69,7 +69,7 @@ class MainActivity : Activity() {
         @JavascriptInterface fun mute(on: Boolean) { mind.voice.muted = on; if (on) mind.voice.hush() }
         @JavascriptInterface fun code(): String = mind.code
         @JavascriptInterface fun pair(code: String) = mind.repair(code)
-        @JavascriptInterface fun memory(): String = org.json.JSONArray(mind.memory.all().map { it.text }).toString()
+        @JavascriptInterface fun memory(): String = org.json.JSONArray(mind.memory()).toString()
         @JavascriptInterface fun trust(): String = JSONObject().put("events", mind.trust.seq).put("head", mind.trust.head)
             .put("broken", mind.trust.verify()).toString()
         @JavascriptInterface fun voice(): String = JSONObject().put("speak", mind.voice.canSpeak).put("listen", mind.voice.canListen).toString()

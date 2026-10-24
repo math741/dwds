@@ -7,7 +7,9 @@ on:
     paths:
       - "mlg/android/**"
       - "mlg/engine/**"
-      - "mlg/data/trust/qroot/**"
+      - "mlg/data/**"
+      - "mlg/mlgsub/**"
+      - "mlg/tests/**"
       - ".github/workflows/mlg-apk.yml"
   workflow_dispatch:
 
@@ -28,10 +30,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: The headset engine matches PyTorch
+      - name: The headset engine matches PyTorch, and the mind passes its behaviour suite
         run: |
           pip install -q numpy torch --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
           python mlg/tests/test_engine.py
+          python mlg/tests/test_mind.py
 
       - uses: actions/setup-java@v4
         with:

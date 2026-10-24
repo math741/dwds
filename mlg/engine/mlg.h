@@ -83,6 +83,41 @@ const char *mlg_router_name(const mlg_router *r, int intent);
 /* Probabilities of every intent for a text; returns the best one. */
 int mlg_router_route(const mlg_router *r, const char *text, float *probs);
 
+/* ---- mind (mlg_mind.c): router + experts + evidence, the same on the headset and in the lab */
+typedef struct mlg_mind mlg_mind;
+
+typedef struct {
+    char intent[16];        /* the router's verdict */
+    float probs[16];
+    int n_intents;
+    char organ[16];         /* social, procedural, memory, body, lab, knowledge, core */
+    int final;              /* 1: reply is the answer; 0: prompt goes to a Resident Core */
+    char reply[2048];
+    char prompt[4096];      /* "C: evidence\nU: question\nM:" */
+    char evidence_title[256];
+    char evidence[512];
+    float evidence_score;
+} mlg_thought;
+
+/* memory_path: where remembered facts live (JSON lines); may be NULL */
+mlg_mind *mlg_mind_new(const char *memory_path);
+void mlg_mind_free(mlg_mind *m);
+/* organs it uses, all optional and not owned */
+void mlg_mind_organs(mlg_mind *m, mlg_router *r, mlg_know *k, mlg_core *c);
+/* what the host knows: "key=value" lines (device, cores, battery, temperature,
+ * thermal, threads, bytes_per_s); the live link as a sentence; local time */
+void mlg_mind_body(mlg_mind *m, const char *facts);
+void mlg_mind_lab(mlg_mind *m, const char *status);
+void mlg_mind_clock(mlg_mind *m, long long unix_seconds, int tz_minutes);
+int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t);
+/* a Resident Core's raw output (this body's or the lab's) -> the answer, checked against the evidence */
+void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, char *out, int cap);
+/* the answer from this body alone; returns 0 when it had no core to ask */
+int mlg_mind_speak(mlg_mind *m, const mlg_thought *t, char *out, int cap, mlg_on_byte cb, void *user, uint64_t seed);
+int mlg_mind_thought_json(const mlg_mind *m, const mlg_thought *t, char *out, int cap);
+int mlg_mind_memory_count(const mlg_mind *m);
+const char *mlg_mind_memory_text(const mlg_mind *m, int i);
+
 /* Text normalization shared by retrieval and routing: lowercase, accents
  * folded, everything that is not a letter or digit becomes a space. */
 int mlg_normalize(const char *in, int n, char *out, int cap);

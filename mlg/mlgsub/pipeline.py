@@ -17,7 +17,7 @@ import time
 
 import torch
 
-from . import brain as B, export, explain, know, mature as M, router as R
+from . import behaviour, brain as B, export, explain, know, mature as M, router as R
 from .body import awaken, field_body
 from .evolve import evolve as evolve_brains, Furnace
 from .substrate import connect
@@ -239,6 +239,14 @@ class Run:
             shutil.copy(os.path.join(self.scratch, name), os.path.join(out, name))
         files = {n: {"sha256": export.sha256(os.path.join(out, n)), "bytes": os.path.getsize(os.path.join(out, n))}
                  for n in ("core.mlgb", "know.mlgk", "router.mlgr")}
+        # the whole MLG, as the headset will run it, through its behaviour suite
+        _, report = behaviour.run(core=core, know=os.path.join(out, "know.mlgk"),
+                                  router=os.path.join(out, "router.mlgr"), log=self.log)
+        self.behaviour = report
+        self.sub.obj("Evaluation", f"eval:{c['brain']}:behaviour", origin="behaviour.run", epistemic="MEASURED",
+                     must=f"{report['must_passed']}/{report['must']}",
+                     quality=f"{report['quality_passed']}/{report['quality']}", passed=report["passed"])
+        self.sub.link(c["brain"], "EVALUATED_BY", f"eval:{c['brain']}:behaviour")
         head = self.sub.anchor(self.path("chain.anchor"))
         manifest = {
             "version": time.strftime("%Y%m%d-%H%M%S", time.gmtime()),
@@ -247,6 +255,7 @@ class Run:
                      "gate_bpb": c.get("gate_bpb"), "qroot_bpb": c.get("qroot_bpb"),
                      "qroot_bpb_deployed": engine_bpb, "weights": "q8"},
             "router": {"intents": R.INTENTS, "held_out_accuracy": self.router_acc},
+            "behaviour": report,
             "lab": {"body": self.body.name, "chain_head": head},
         }
         with open(os.path.join(out, "manifest.json"), "w") as fh:
@@ -261,6 +270,10 @@ class Run:
         """Upload the organs as assets of a GitHub release, where the app looks for them."""
         import requests
 
+        if not getattr(self, "behaviour", {}).get("passed"):
+            self.log("[publish] o cérebro não passou na prova de comportamento: não vou mandá-lo para o Quest. "
+                     "O Quest continua com o anterior.")
+            return None
         if not token:
             self.log("[publish] sem GITHUB_TOKEN nos Secrets: os órgãos ficaram no Drive (MLG/quest). "
                      "Copie para o Quest em Android/data/ai.mlg.zero/files/mind, ou adicione o token e rode esta célula.")
@@ -289,17 +302,16 @@ class Run:
         self.log(f"[publish] pronto: o app no Quest baixa sozinho na próxima vez que abrir ({url})")
         return url
 
-    def ask(self, question, n=300):
-        """What the headset does for a question about the world: retrieve, then let the champion speak."""
-        c = self.furnace.champion
-        hit = subprocess.run([CLI, "search", os.path.join(self.scratch, "know.mlgk"), question, "1"],
-                             capture_output=True, text=True).stdout.strip()
-        ctx = ""
-        if hit.startswith("[") and float(hit[1:hit.index("]")]) >= 4:  # weak matches are not evidence
-            ctx = hit.split(" | ", 1)[1]
-        prompt = (f"C: {ctx}\n" if ctx else "") + f"U: {question}\nM:"
-        out = B.generate(c["model"], c["g"], prompt, self.body.device, n=n, temperature=0.6, top_p=0.9, seed=0)
-        return out[len(prompt):].split("\n")[0].strip()
+    def ask(self, question):
+        """What the headset would answer, from the exported organs, through the same mind."""
+        from .mind import Mind
+        if getattr(self, "_mind", None) is None:
+            q = self.path("quest")
+            self._mind = Mind(core=os.path.join(q, "core.mlgb"), know=os.path.join(q, "know.mlgk"),
+                              router=os.path.join(q, "router.mlgr"), memory=os.path.join(self.scratch, "ask-memory.jsonl"))
+            self._mind.clock()
+        organ, reply = self._mind.ask(question)
+        return f"[{organ}] {reply}"
 
     def serve(self, hours=1.0):
         if self.lnk and self.furnace and self.furnace.champion:

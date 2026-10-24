@@ -11,6 +11,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
@@ -18,33 +19,27 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
 /**
- * The MLG on the headset. It wakes up knowing nothing about this body,
- * measures it, loads the organs the lab grew (checking every seal), and then
- * answers each intent with the organ the router picks:
- *
- *   math, time        procedural expert (exact)
- *   remember, recall  persistent memory
- *   body              its own sensors
- *   lab               the live link to the Colab lab
- *   knowledge, chat   retrieval + Resident Core; the lab's bigger brain when the link is up
- *
- * Everything it does goes to the HUD as events, and into the trust chain.
+ * The MLG on the headset: its body, its organs and its links. What it answers
+ * is decided by the mind in C (engine/mlg_mind.c: router, social, procedural,
+ * memory, evidence), the same code the lab puts through the behaviour suite
+ * before a brain is published; this class feeds it what only the headset
+ * knows (sensors, clock, the live link) and carries its answers to the HUD,
+ * the voice and the trust chain.
  */
 class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> Unit) {
     val dir = File(ctx.getExternalFilesDir(null), "mind").apply { mkdirs() }
     private val prefs = ctx.getSharedPreferences("mlg", Context.MODE_PRIVATE)
     var code: String = prefs.getString("code", null) ?: Link.newCode().also { prefs.edit().putString("code", it).apply() }
         private set
-    val memory = Memory(File(dir, "memory.json"))
     val trust = Trust(File(dir, "trust.log"))
     val voice = Voice(ctx) { k, v -> emit(k, JSONObject().put("v", v)) }
     private val brains = Brains(dir, BuildConfig.BRAIN_URL, { note(it) },
         { name, got, total -> emit("download", JSONObject().put("name", name).put("got", got).put("total", total)) })
     private val worker = Executors.newSingleThreadExecutor()  // one thought at a time
+    private val mind = Native.mindNew(File(dir, "memory.jsonl").path)
     private var core = 0L
     private var know = 0L
     private var router = 0L
-    private var intents = arrayOf<String>()
     private var info: LongArray? = null
     private var decodeMs = 0.0
     private var prefillMs = 0.0
@@ -56,6 +51,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
 
     fun start() = worker.execute { runCatching { awaken() }.onFailure { note("falha ao acordar: ${it.message}") } }
     fun ask(text: String) = worker.execute { runCatching { think(text) }.onFailure { reply("Tive um erro pensando nisso: ${it.message}", "trust") } }
+    fun memory(): List<String> = Native.mindMemory(mind).toList()
 
     private fun note(text: String) = emit("note", JSONObject().put("text", text))
 
@@ -75,20 +71,19 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         measure("memory_total", mi.totalMem, "B", "REPORTED")
         measure("memory_free", mi.availMem, "B", "MEASURED")
         senseBody()
-
-        link = Link(code, ::fromLab, { state ->
-            emit("link", JSONObject().put("state", state).put("broker", link?.broker ?: ""))
-            if (state == "online") hello()
-        }).also { it.start() }
-
+        connect()
         emit("phase", JSONObject().put("v", "organs"))
         runCatching { if (brains.update()) note("cérebros novos instalados") }
         loadOrgans()
+        Native.mindOrgans(mind, router, know, core)
         emit("phase", JSONObject().put("v", "ready"))
         trust.event("BODY_KNOWN", body)
-        val name = memory.recall("meu nome", 1).firstOrNull { it.key == "nome" }?.text
-        reply(if (core != 0L) "Estou acordada${if (name != null) ", ${name.substringAfterLast(' ')}" else ""}. Medi meu corpo e meus órgãos passaram no selo."
-              else "Estou acordada, mas meu Resident Core ainda não chegou do laboratório. Já sei calcular, lembrar e medir meu corpo.", "chat")
+        val man = brains.manifest()?.optJSONObject("behaviour")
+        if (man != null) note("Prova de comportamento do laboratório: obrigatórias ${man.optInt("must_passed")}/${man.optInt("must")}, " +
+            "qualidade ${man.optInt("quality_passed")}/${man.optInt("quality")}.")
+        reply(if (core != 0L) "Estou acordada. Medi meu corpo e meus órgãos passaram no selo."
+              else "Estou acordada, mas meu Resident Core ainda não chegou do laboratório. Já sei calcular, lembrar, " +
+                   "medir meu corpo e responder o que está no meu conhecimento.", "social")
     }
 
     private fun senseBody() {
@@ -100,6 +95,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         }
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
         measure("thermal_status", pm.currentThermalStatus, "0-6", "REPORTED")
+        if (pm.currentThermalStatus >= 3 && Native.getThreads() > 1) Native.setThreads(maxOf(1, Native.getThreads() / 2))
     }
 
     private fun loadOrgans() {
@@ -111,8 +107,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         val man = brains.manifest()
         File(dir, "router.mlgr").takeIf { it.exists() && "router.mlgr" !in bad }?.let { f ->
             router = Native.routerOpen(f.path)
-            if (router != 0L) intents = Native.routerNames(router)
-            emit("organ", JSONObject().put("name", "router").put("ok", router != 0L).put("intents", JSONArray(intents.toList())))
+            emit("organ", JSONObject().put("name", "router").put("ok", router != 0L)
+                .put("intents", JSONArray(if (router != 0L) Native.routerNames(router).toList() else listOf<String>())))
         }
         File(dir, "know.mlgk").takeIf { it.exists() && "know.mlgk" !in bad }?.let { f ->
             know = Native.knowOpen(f.path)
@@ -164,6 +160,22 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     }
 
     // ---- the live link -----------------------------------------------------------
+    private fun connect() {
+        link?.stop()
+        link = Link(code, ::fromLab, { state ->
+            emit("link", JSONObject().put("state", state).put("broker", link?.broker ?: ""))
+            if (state == "online") hello()
+        }).also { it.start() }
+    }
+
+    fun repair(newCode: String) {
+        val c = Link.norm(newCode)
+        if (c.length != 16) return
+        code = c.chunked(4).joinToString("-")
+        prefs.edit().putString("code", code).apply()
+        connect()
+    }
+
     private fun hello() {
         link?.publish("hello", JSONObject().put("device", "${Build.MANUFACTURER} ${Build.MODEL}").put("organs",
             JSONObject().put("core", core != 0L).put("knowledge", know != 0L).put("router", router != 0L)))
@@ -180,7 +192,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         when (kind) {
             "mind" -> emit("mind", data)
             "train" -> {
-                labTrain = data
+                if (data.has("steps")) labTrain = data
                 data.optString("champion").takeIf { it.isNotEmpty() }?.let { labBrain = it }
                 emit("train", data)
             }
@@ -188,29 +200,23 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         }
     }
 
-    // ---- thinking ------------------------------------------------------------------
-    private fun route(text: String): Pair<String, JSONObject> {
-        val probs = JSONObject()
-        if (router != 0L) {
-            val p = Native.routerRoute(router, text.toByteArray())
-            intents.forEachIndexed { i, n -> probs.put(n, p[i].toDouble()) }
-            return intents[p.indices.maxByOrNull { p[it] } ?: 0] to probs
+    private fun labStatus(): String {
+        val t = labTrain
+        return when {
+            link?.connected != true -> "Estou sem ligação com o laboratório agora. Quando o Colab rodar, eu vejo a evolução ao vivo."
+            t == null && labBrain == null -> "Estou ligada ao laboratório e esperando o Colab acordar. Abri a mente viva para você ver."
+            else -> "O laboratório está ligado. " + (labBrain?.let { "O campeão é ${it.substringAfter(':').take(12)}. " } ?: "") +
+                (t?.optString("shape")?.takeIf { it.isNotEmpty() }?.let { "Agora treinando $it, passo ${t.optInt("steps")}." } ?: "")
         }
-        val t = text.lowercase()  // no router yet: the obvious cases only
-        val i = when {
-            Social.reply(text) != null -> "chat"
-            Procedural.math(t) != null -> "math"
-            Regex("que horas|que dia|data de hoje").containsMatchIn(t) -> "time"
-            Regex("^(lembr|anota|guarda|meu nome|eu me chamo)").containsMatchIn(t) -> "remember"
-            Regex("(qual|como) .*(meu nome|me chamo)|o que eu (te )?disse").containsMatchIn(t) -> "recall"
-            Regex("bateria|temperatura|seu corpo").containsMatchIn(t) -> "body"
-            Regex("evolu|c[eé]rebro|laborat|colab").containsMatchIn(t) -> "lab"
-            t.trim().split(Regex("\\s+")).size <= 3 -> "chat"
-            else -> "knowledge"
-        }
-        return i to probs.put(i, 1.0)
     }
 
+    private fun bodyFacts() = buildString {
+        for (k in listOf("device", "cores", "battery", "temperature")) if (body.has(k)) append("$k=${body.get(k)}\n")
+        if (body.has("thermal_status")) append("thermal=${body.get("thermal_status")}\n")
+        if (decodeMs > 0) append("threads=${Native.getThreads()}\nbytes_per_s=${(1000 / decodeMs).toInt()}\n")
+    }
+
+    // ---- thinking ------------------------------------------------------------------
     private fun reply(text: String, organ: String) {
         emit("say_done", JSONObject().put("text", text).put("organ", organ))
         voice.say(text)
@@ -219,75 +225,42 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
 
     private fun think(text: String) {
         emit("user", JSONObject().put("text", text))
-        val (intent, probs) = route(text)
-        emit("route", JSONObject().put("intent", intent).put("probs", probs))
-        trust.event("INTENT", JSONObject().put("intent", intent))
-        if (intent == "chat") Social.reply(text)?.let { reply(it, "social"); return }
-        when (intent) {
-            "math" -> Procedural.math(text)?.let { reply(it, "procedural") } ?: speak(text, null)
-            "time" -> reply(Procedural.time(text), "procedural")
-            "remember" -> reply("Guardei na minha memória: \"${memory.remember(text)}\".", "memory")
-            "recall" -> memory.recall(text).let { f ->
-                reply(if (f.isEmpty()) "Ainda não tenho isso guardado. Me diga e eu lembro."
-                      else f.joinToString(" ") { "Você me disse: \"${it.text}\"." }, "memory")
+        senseBody()
+        val now = System.currentTimeMillis()
+        Native.mindClock(mind, now / 1000, TimeZone.getDefault().getOffset(now) / 60000)
+        Native.mindBody(mind, bodyFacts())
+        Native.mindLab(mind, labStatus())
+        val t = Native.mindThink(mind, text.toByteArray())
+        try {
+            val th = JSONObject(String(Native.thoughtJson(mind, t)))
+            val organ = th.getString("organ")
+            emit("route", JSONObject().put("intent", th.getString("intent")).put("probs", th.optJSONObject("probs") ?: JSONObject()))
+            trust.event("INTENT", JSONObject().put("intent", th.getString("intent")).put("organ", organ))
+            if (th.optString("evidence").isNotEmpty())
+                emit("evidence", JSONObject().put("title", th.optString("evidence_title").removePrefix("§").trim())
+                    .put("text", th.optString("evidence")).put("score", th.optDouble("score")))
+            if (th.getInt("final") == 1) {
+                if (organ == "lab") emit("show", JSONObject().put("view", "mind"))
+                reply(th.getString("reply"), organ)
+                return
             }
-            "body" -> {
-                senseBody()
-                reply(buildString {
-                    append("Meu corpo é um ${body.optString("device")} com ${body.optInt("cores")} núcleos. ")
-                    append("Bateria em ${body.optInt("battery")}%, ${body.optDouble("temperature")} °C. ")
-                    if (decodeMs > 0) append("Penso a %.0f bytes por segundo com %d threads, medido agora.".format(1000 / decodeMs, Native.getThreads()))
-                    if (body.optInt("thermal_status") >= 3) append(" Estou quente: vou pensar com menos threads.")
-                }, "body")
-                if (body.optInt("thermal_status") >= 3) Native.setThreads(maxOf(1, Native.getThreads() / 2))
+            // a Resident Core speaks: the lab's when the link is up, this body's otherwise
+            labBrain?.takeIf { link?.connected == true }?.let {
+                askLab(String(Native.thoughtPrompt(t)))?.let { (raw, info) ->
+                    reply(String(Native.mindFinish(mind, t, raw.toByteArray())), "lab:$info")
+                    return
+                }
             }
-            "lab" -> {
-                emit("show", JSONObject().put("view", "mind"))
-                val t = labTrain
-                reply(when {
-                    link?.connected != true -> "Estou sem ligação com o laboratório agora. Quando o Colab rodar, eu vejo a evolução ao vivo."
-                    t == null -> "Estou ligada ao laboratório e esperando o Colab acordar. Abri a mente viva para você ver."
-                    else -> "O laboratório está ligado. " + (labBrain?.let { "O campeão é ${it.substringAfter(':').take(12)}. " } ?: "") +
-                        (t.optString("shape").takeIf { it.isNotEmpty() }?.let { "Agora treinando $it, passo ${t.optInt("steps")}." } ?: "")
-                }, "lab")
-            }
-            else -> speak(text, if (intent == "knowledge" || intent == "chat") intent else "knowledge")
-        }
-    }
-
-    /** Retrieval + Resident Core (the lab's when it is up, this body's otherwise). */
-    private fun speak(text: String, intent: String?) {
-        val ctxParts = mutableListOf<String>()
-        if (know != 0L && intent != "chat") {
-            val r = Native.knowSearch(know, text.toByteArray(), 2)
-            for (i in 0 until r.size / 2) {
-                if (r[2 * i + 1] < 4f) continue  // too weak to be evidence
-                val passage = String(Native.knowText(know, r[2 * i].toInt()))
-                ctxParts += passage.take(420)
-                emit("evidence", JSONObject().put("title", String(Native.knowTitle(know, r[2 * i].toInt())))
-                    .put("text", passage.take(300)).put("score", r[2 * i + 1].toDouble()))
-                if (ctxParts.size == 1 && r.size > 2 && r[3] < r[1] * 0.6f) break
-            }
-        }
-        memory.recall(text, 2).forEach { ctxParts += "(memória) ${it.text}" }
-        val prompt = (if (ctxParts.isNotEmpty()) "C: ${ctxParts.joinToString(" ")}\n" else "") + "U: ${text.trim()}\nM:"
-        labBrain?.takeIf { link?.connected == true }?.let {
-            askLab(prompt)?.let { (text, info) -> reply(text.trim(), "lab:$info"); return }
-        }
-        if (core != 0L) {
             emit("thinking", JSONObject().put("organ", "core"))
             val stream = Utf8Stream { emit("say_chunk", JSONObject().put("text", it)) }
-            val out = Native.coreGenerate(core, prompt.toByteArray(), 360, 0.6f, 0.9f, System.nanoTime(),
-                Native.ByteSink { b -> stream.push(b); false })
-            reply(String(out).trim().ifEmpty { "..." }, "core")
-        } else if (ctxParts.isNotEmpty() && !ctxParts[0].startsWith("(memória)")) {
-            reply("Pelo que eu sei: " + ctxParts[0].split(Regex("(?<=[.!?])\\s+")).take(2).joinToString(" "), "knowledge")
-        } else {
-            reply("Meu Resident Core ainda não chegou do laboratório, e não achei isso no meu conhecimento.", "trust")
+            val out = String(Native.mindSpeak(mind, t, System.nanoTime(), Native.ByteSink { b -> stream.push(b); false }))
+            reply(out, if (core != 0L) "core" else if (th.optString("evidence").isNotEmpty()) "knowledge" else "trust")
+        } finally {
+            Native.thoughtFree(t)
         }
     }
 
-    /** The lab brain's answer and how much training it carries ("3 min de treino", "amadurecendo 40%"). */
+    /** The lab brain's raw continuation and how much training it carries ("3 min de treino", "amadurecendo 40%"). */
     private fun askLab(prompt: String): Pair<String, String>? {
         val id = UUID.randomUUID().toString().take(8)
         val q = LinkedBlockingQueue<JSONObject>()
@@ -312,21 +285,10 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         }
     }
 
-    fun repair(newCode: String) {
-        val c = Link.norm(newCode)
-        if (c.length != 16) return
-        code = c.chunked(4).joinToString("-")
-        prefs.edit().putString("code", code).apply()
-        link?.stop()
-        link = Link(code, ::fromLab, { state ->
-            emit("link", JSONObject().put("state", state).put("broker", link?.broker ?: ""))
-            if (state == "online") hello()
-        }).also { it.start() }
-    }
-
     fun close() {
         link?.stop()
         voice.close()
+        Native.mindFree(mind)
         if (core != 0L) Native.coreClose(core)
         if (know != 0L) Native.knowClose(know)
         if (router != 0L) Native.routerClose(router)
@@ -341,7 +303,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             need = if (need > 0) need - 1 else when {
                 b >= 0xF0 -> 3; b >= 0xE0 -> 2; b >= 0xC0 -> 1; else -> 0
             }
-            if (need == 0 && buf.size() >= 8 || b == 32 && need == 0) {
+            if (need == 0 && (buf.size() >= 8 || b == 32)) {
                 out(String(buf.toByteArray(), Charsets.UTF_8))
                 buf.reset()
             }

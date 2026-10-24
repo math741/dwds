@@ -1,0 +1,33 @@
+# The behaviour suite: what the MLG must do, run in order on one fresh memory.
+# gate	input	organs (any of)	must match (regex, case-insensitive)	must not match
+# "must": no Resident Core needed; every line passes, or nothing is published.
+# "quality": answers that go through a Resident Core; a share of them must pass.
+must	Oi	social	.	
+must	Eai	social	.	
+must	valeu mlg	social	.	
+must	bom dia	social	bom dia	
+must	quanto é nove vezes nove	procedural	= 81\b	
+must	quanto é 1250 dividido por 5	procedural	= 250\b	
+must	17,5 mais 2,5	procedural	= 20\b	
+must	raiz quadrada de 144	procedural	\b12\b	
+must	quanto é 15 por cento de 200	procedural	\b30\b	
+must	que horas são?	procedural	\d\d:\d\d	
+must	meu nome é Ana	memory	Ana	
+must	qual é meu nome?	memory	seu nome é ana	
+must	lembra que amanhã tenho prova de física	memory	prova de física	
+must	o que eu tenho amanhã?	memory	prova de física	
+must	como está sua bateria?	body	bateria	
+must	qual é a capital da frança	knowledge	paris	
+must	capital da argentina	knowledge	buenos aires	
+must	quem é você	knowledge	MLG	
+must	o que é a mlg	knowledge	MLG	
+must	qual a capital da alemanha?	social|procedural|memory|body|lab|knowledge|core	.	paris
+must	como está a evolução?	lab	.	
+quality	o que é fotossíntese?	knowledge|core	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	me conta uma curiosidade	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	o que é a gravidade?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	quem foi Machado de Assis?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	você gosta de música?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	o que você acha de inteligência artificial?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	explica como funciona um vulcão	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	por que o céu é azul?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado

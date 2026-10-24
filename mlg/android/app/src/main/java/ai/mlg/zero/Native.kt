@@ -37,4 +37,23 @@ object Native {
     @JvmStatic external fun routerClose(h: Long)
     @JvmStatic external fun routerNames(h: Long): Array<String>
     @JvmStatic external fun routerRoute(h: Long, text: ByteArray): FloatArray
+
+    // the mind (engine/mlg_mind.c): router, experts and evidence, the same code the lab tests
+    @JvmStatic external fun mindNew(memoryPath: String): Long
+    @JvmStatic external fun mindFree(m: Long)
+    @JvmStatic external fun mindOrgans(m: Long, router: Long, know: Long, core: Long)
+    /** "key=value" lines: device, cores, battery, temperature, thermal, threads, bytes_per_s */
+    @JvmStatic external fun mindBody(m: Long, facts: String)
+    @JvmStatic external fun mindLab(m: Long, status: String)
+    @JvmStatic external fun mindClock(m: Long, unixSeconds: Long, tzMinutes: Int)
+    /** a thought on the native heap; free it with thoughtFree */
+    @JvmStatic external fun mindThink(m: Long, text: ByteArray): Long
+    @JvmStatic external fun thoughtFree(t: Long)
+    @JvmStatic external fun thoughtJson(m: Long, t: Long): ByteArray
+    @JvmStatic external fun thoughtPrompt(t: Long): ByteArray
+    /** this body's answer: its core, or the evidence when it has none */
+    @JvmStatic external fun mindSpeak(m: Long, t: Long, seed: Long, sink: ByteSink?): ByteArray
+    /** a Resident Core's raw output (the lab's) checked against the evidence */
+    @JvmStatic external fun mindFinish(m: Long, t: Long, raw: ByteArray): ByteArray
+    @JvmStatic external fun mindMemory(m: Long): Array<String>
 }

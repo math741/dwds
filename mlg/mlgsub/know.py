@@ -46,17 +46,23 @@ def dialog_pairs(root, files, held=frozenset()):
     return out
 
 
+MLG_TITLE = "§ "  # engine/mlg_mind.c answers these word for word when the question matches; not a word
+
+
 def mlg_passages(root, files, held=frozenset()):
+    """Each answer of the MLG corpus, titled by every question that leads to it."""
     by_answer = {}
     for q, a in dialog_pairs(root, files, held):
-        by_answer.setdefault(a, q)
-    for a, q in by_answer.items():
-        yield q, a
+        qs = by_answer.setdefault(a, [])
+        if q not in qs:
+            qs.append(q)
+    for a, qs in by_answer.items():
+        yield MLG_TITLE + " | ".join(qs[:12]), a
     for f in files:
         for line in open(os.path.join(root, f), encoding="utf-8", errors="replace"):
             line = line.strip()
             if len(line) > 60 and not line.startswith(("U:", "M:")) and line not in held:
-                yield "MLG", line
+                yield MLG_TITLE.strip(), line  # the MLG's prose: no title words to weigh
 
 
 def chunks(text, size=PASSAGE):
@@ -146,7 +152,7 @@ def grounded_dialogs(index, passages, root, train_files, held, out, wiki_titles=
             n += 1
         firsts = {}
         for i, (title, text) in enumerate(passages):
-            if title != "MLG" and title not in firsts and len(firsts) < wiki_titles:
+            if not title.startswith(("MLG", MLG_TITLE.strip())) and title not in firsts and len(firsts) < wiki_titles:
                 firsts[title] = i
         titles = list(firsts)
         for title in titles:

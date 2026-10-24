@@ -164,3 +164,90 @@ JNIEXPORT jfloatArray JNICALL FN(routerRoute)(JNIEnv *env, jclass cls, jlong h, 
     (*env)->SetFloatArrayRegion(env, a, 0, n, p);
     return a;
 }
+
+/* ---- mind: the decisions, shared with the lab (engine/mlg_mind.c) ----------------- */
+static char *jstr(JNIEnv *env, jstring s) {
+    if (!s) return strdup("");
+    const char *u = (*env)->GetStringUTFChars(env, s, NULL);
+    char *out = strdup(u);
+    (*env)->ReleaseStringUTFChars(env, s, u);
+    return out;
+}
+
+JNIEXPORT jlong JNICALL FN(mindNew)(JNIEnv *env, jclass cls, jstring memory) {
+    char *p = jstr(env, memory);
+    mlg_mind *m = mlg_mind_new(p);
+    free(p);
+    return (jlong)(intptr_t)m;
+}
+
+JNIEXPORT void JNICALL FN(mindFree)(JNIEnv *env, jclass cls, jlong m) { mlg_mind_free((mlg_mind *)(intptr_t)m); }
+
+JNIEXPORT void JNICALL FN(mindOrgans)(JNIEnv *env, jclass cls, jlong m, jlong router, jlong know, jlong core) {
+    mlg_mind_organs((mlg_mind *)(intptr_t)m, (mlg_router *)(intptr_t)router, (mlg_know *)(intptr_t)know,
+                    (mlg_core *)(intptr_t)core);
+}
+
+JNIEXPORT void JNICALL FN(mindBody)(JNIEnv *env, jclass cls, jlong m, jstring facts) {
+    char *f = jstr(env, facts);
+    mlg_mind_body((mlg_mind *)(intptr_t)m, f);
+    free(f);
+}
+
+JNIEXPORT void JNICALL FN(mindLab)(JNIEnv *env, jclass cls, jlong m, jstring status) {
+    char *f = jstr(env, status);
+    mlg_mind_lab((mlg_mind *)(intptr_t)m, f);
+    free(f);
+}
+
+JNIEXPORT void JNICALL FN(mindClock)(JNIEnv *env, jclass cls, jlong m, jlong unix_s, jint tz) {
+    mlg_mind_clock((mlg_mind *)(intptr_t)m, unix_s, tz);
+}
+
+/* the thought lives on the native heap until thoughtFree */
+JNIEXPORT jlong JNICALL FN(mindThink)(JNIEnv *env, jclass cls, jlong m, jbyteArray text) {
+    char *t = cstr(env, text, NULL);
+    mlg_thought *th = malloc(sizeof *th);
+    mlg_mind_think((mlg_mind *)(intptr_t)m, t, th);
+    free(t);
+    return (jlong)(intptr_t)th;
+}
+
+JNIEXPORT void JNICALL FN(thoughtFree)(JNIEnv *env, jclass cls, jlong t) { free((void *)(intptr_t)t); }
+
+JNIEXPORT jbyteArray JNICALL FN(thoughtJson)(JNIEnv *env, jclass cls, jlong m, jlong t) {
+    char *buf = malloc(16384);
+    const int n = mlg_mind_thought_json((mlg_mind *)(intptr_t)m, (mlg_thought *)(intptr_t)t, buf, 16384);
+    jbyteArray a = bytes_out(env, buf, n < 16384 ? n : 16383);
+    free(buf);
+    return a;
+}
+
+JNIEXPORT jbyteArray JNICALL FN(thoughtPrompt)(JNIEnv *env, jclass cls, jlong t) {
+    const mlg_thought *th = (mlg_thought *)(intptr_t)t;
+    return bytes_out(env, th->prompt, (int)strlen(th->prompt));
+}
+
+JNIEXPORT jbyteArray JNICALL FN(mindSpeak)(JNIEnv *env, jclass cls, jlong m, jlong t, jlong seed, jobject sink) {
+    char out[4096];
+    sink_ctx s = {env, sink, NULL};
+    if (sink) s.on_byte = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, sink), "onByte", "(I)Z");
+    mlg_mind_speak((mlg_mind *)(intptr_t)m, (mlg_thought *)(intptr_t)t, out, sizeof out, to_java, &s, (uint64_t)seed);
+    return bytes_out(env, out, (int)strlen(out));
+}
+
+JNIEXPORT jbyteArray JNICALL FN(mindFinish)(JNIEnv *env, jclass cls, jlong m, jlong t, jbyteArray raw) {
+    char *r = cstr(env, raw, NULL), out[4096];
+    mlg_mind_finish((mlg_mind *)(intptr_t)m, (mlg_thought *)(intptr_t)t, r, out, sizeof out);
+    free(r);
+    return bytes_out(env, out, (int)strlen(out));
+}
+
+JNIEXPORT jobjectArray JNICALL FN(mindMemory)(JNIEnv *env, jclass cls, jlong m) {
+    mlg_mind *mind = (mlg_mind *)(intptr_t)m;
+    const int n = mlg_mind_memory_count(mind);
+    jobjectArray a = (*env)->NewObjectArray(env, n, (*env)->FindClass(env, "java/lang/String"), NULL);
+    for (int i = 0; i < n; i++)
+        (*env)->SetObjectArrayElement(env, a, i, (*env)->NewStringUTF(env, mlg_mind_memory_text(mind, i)));
+    return a;
+}
