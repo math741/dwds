@@ -59,9 +59,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd "$RUNNER_TEMP/organs"
-          gh release delete mlg-organs --yes --cleanup-tag || true
+          gh release delete mlg-organs --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
           # the manifest last: it tells the app the rest is ready
-          gh release create mlg-organs know.mlgk router.mlgr --prerelease --target "$GITHUB_SHA" \
+          gh release create mlg-organs know.mlgk router.mlgr --repo "$GITHUB_REPOSITORY" --prerelease --target "$GITHUB_SHA" \
             --title "MLG · órgãos de base (build $GITHUB_RUN_NUMBER)" \
             --notes "Roteador e conhecimento (corpus da MLG + ${WIKI_MB} MiB da Wikipédia em português), feitos do zero pelo CI e aprovados na prova de comportamento. O app no Quest baixa sozinho enquanto o Colab não publica um cérebro próprio (mlg-brain)."
-          gh release upload mlg-organs manifest.json
+          gh release upload mlg-organs manifest.json --repo "$GITHUB_REPOSITORY"
