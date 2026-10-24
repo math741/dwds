@@ -40,6 +40,19 @@ def main():
     lab.brain = (B.Brain(g), g, "brain:test")
     sub.obj("Body", "body:lab", origin="test", epistemic="MEASURED", name="lab")
     stop = threading.Event()
+    # a sealed core to hand over, and a broker that loses one part of it on the way
+    core = os.path.join(os.environ.get("TMPDIR", "/tmp"), "mlg-link-core.bin")
+    with open(core, "wb") as fh:
+        fh.write(os.urandom(10 * L.CHUNK + 1234))
+    lab.offer(core, {"version": "20990101-000000", "core": {"brain": "brain:test"}, "behaviour": {"passed": True}})
+    send, lost = lab.publish, []
+
+    def lossy(kind, obj):
+        if kind == "part" and obj["i"] == 3 and not lost:
+            lost.append(3)
+            return
+        send(kind, obj)
+    lab.publish = lossy
 
     def serve():  # what the furnace does between training steps
         while not stop.is_set():
@@ -52,11 +65,13 @@ def main():
     stop.set()
     out = r.stdout + r.stderr
     for line in out.splitlines():
-        if "mind items" in line or "FAILED" in line or "AssertionError" in line:
+        if "mind items" in line or "core over the link" in line or "FAILED" in line or "AssertionError" in line:
             print(line.strip())
     assert r.returncode == 0, out[-3000:]
     assert lab.field_report and lab.headsets, "the lab never heard the headset"
-    print(f"link works both ways: headset measured {lab.field_report['decode_ms']} ms/byte, lab answered over MQTT")
+    assert lost, "the test never lost a part"
+    print(f"link works both ways: headset measured {lab.field_report['decode_ms']} ms/byte, lab answered over MQTT, "
+          f"a core crossed it in parts (one lost and asked for again)")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,67 @@
+# Builds the organs a Quest can carry before any Resident Core (the router and
+# the knowledge index: the MLG's corpus plus Portuguese Wikipedia) and publishes
+# them as the "mlg-organs" release. The app downloads them by itself until the
+# Colab notebook publishes a brain of its own ("mlg-brain").
+name: MLG organs
+
+on:
+  push:
+    paths:
+      - "mlg/mlgsub/know.py"
+      - "mlg/mlgsub/router.py"
+      - "mlg/mlgsub/organs.py"
+      - "mlg/mlgsub/behaviour.py"
+      - "mlg/mlgsub/text.py"
+      - "mlg/engine/**"
+      - "mlg/data/**"
+      - ".github/workflows/mlg-organs.yml"
+  workflow_dispatch:
+    inputs:
+      wiki_mb:
+        description: "MiB of Portuguese Wikipedia to index"
+        default: "512"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mlg-organs
+  cancel-in-progress: true
+
+jobs:
+  organs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      WIKI_MB: ${{ github.event.inputs.wiki_mb || '512' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python packages
+        run: pip install -q numpy datasets torch --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+      - name: Wikipedia, kept between runs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mlg
+          key: wiki-pt-20231101-${{ env.WIKI_MB }}
+
+      - name: Build the router and the knowledge index, and put them through the behaviour suite
+        working-directory: mlg
+        run: python -m mlgsub.organs "$RUNNER_TEMP/organs" --wiki-mb "$WIKI_MB"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP/organs"
+          gh release delete mlg-organs --yes --cleanup-tag || true
+          # the manifest last: it tells the app the rest is ready
+          gh release create mlg-organs know.mlgk router.mlgr --prerelease --target "$GITHUB_SHA" \
+            --title "MLG · órgãos de base (build $GITHUB_RUN_NUMBER)" \
+            --notes "Roteador e conhecimento (corpus da MLG + ${WIKI_MB} MiB da Wikipédia em português), feitos do zero pelo CI e aprovados na prova de comportamento. O app no Quest baixa sozinho enquanto o Colab não publica um cérebro próprio (mlg-brain)."
+          gh release upload mlg-organs manifest.json

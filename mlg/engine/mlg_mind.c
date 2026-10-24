@@ -419,6 +419,16 @@ static void quote(const char *text, char *out, int cap) {
     trim(out);
 }
 
+static int asks_curiosity(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    static const char *X[] = {"curiosidade", "fato aleatorio", "fato interessante", "algo interessante", "me surpreend",
+                              "voce sabia", "coisa interessante", "algo que eu nao sei", NULL};
+    for (const char **x = X; *x; x++)
+        if (strstr(n, *x)) return 1;
+    return 0;
+}
+
 /* ---- procedural: arithmetic in words or symbols -------------------------------- */
 static const struct { const char *w; int v; } NUMS[] = {
     {"zero", 0}, {"um", 1}, {"uma", 1}, {"dois", 2}, {"duas", 2}, {"tres", 3}, {"quatro", 4}, {"cinco", 5},
@@ -733,7 +743,11 @@ static void body_report(const mlg_mind *m, int asks_heat, char *out, int cap) {
 static const char *STOP[] = {"quem", "qual", "quais", "como", "onde", "quando", "voce", "sobre", "isso", "essa", "esse",
                              "para", "pelo", "pela", "entre", "mais", "muito", "uma", "umas", "uns", "que", "por",
                              "dos", "das", "nos", "nas", "com", "tem", "sao", "foi", "era", "ser", "fale", "fala",
-                             "conta", "explica", "sabe", "diga", "diz", "quanto", "quanta", "quantos", "quantas", NULL};
+                             "conta", "explica", "sabe", "diga", "diz", "quanto", "quanta", "quantos", "quantas",
+                             /* the frame of a question, not what it asks about */
+                             "funciona", "funcionam", "significa", "serve", "servem", "existe", "existem", "acontece",
+                             "aconteceu", "fale", "falar", "explique", "explicar", "conte", "contar", "defina", "definir",
+                             "descreva", "descrever", "resuma", "resumir", "gosta", "acha", "pensa", NULL};
 
 static int stopword(const char *w) {
     for (const char **s = STOP; *s; s++)
@@ -777,24 +791,39 @@ static double content_dice(const char *a, const char *b, int *n) {
     return ca + cb ? 2.0 * common / (ca + cb) : 0.0;
 }
 
-static double coverage(const char *question, const char *passage) {
-    char q[512], p[1600];
+/* How much a word of the question tells, from the index: rare words weigh, common
+ * ones do not. A word the index does not hold was too common to keep if the
+ * passage has it, and is unheard of otherwise. */
+static float weight(const mlg_mind *m, const char *w, int in_passage) {
+    if (has_digit(w)) return 4.f;
+    if (strlen(w) < 3 || stopword(w)) return 0.f;
+    if (!m->know) return 1.f;
+    const float idf = mlg_know_idf(m->know, w, (int)strlen(w));
+    return idf >= 0.f ? idf : in_passage ? 0.f : 8.f;
+}
+
+/* the word, or a shared stem of 6 ("descobriu" finds "descobrir") */
+static int has_stem(char **w, int n, const char *x) {
+    if (has_word(w, n, x)) return 1;
+    for (int j = 0; strlen(x) >= 6 && j < n; j++)
+        if (strlen(w[j]) >= 6 && !strncmp(x, w[j], 6)) return 1;
+    return 0;
+}
+
+/* share of what the question asks (weighted by rarity) that a passage contains */
+static double coverage(const mlg_mind *m, const char *question, const char *passage) {
+    char q[512], pn[1600];
     norm(question, q, sizeof q);
-    snprintf(p, sizeof p, "%s", passage);
-    char pn[1600];
-    norm(p, pn, sizeof pn);
+    norm(passage, pn, sizeof pn);
     char *qw[64], *pw[300];
     const int nq = words(q, qw, 64), np = words(pn, pw, 300);
-    int content = 0, found = 0;
+    double asked = 0.0, found = 0.0;
     for (int i = 0; i < nq; i++) {
-        if (strlen(qw[i]) < 3 || stopword(qw[i])) continue;
-        content++;
-        int hit = has_word(pw, np, qw[i]);
-        for (int j = 0; !hit && j < np; j++)  /* "descobriu" finds "descobrir": a shared stem of 6 */
-            hit = strlen(qw[i]) >= 6 && strlen(pw[j]) >= 6 && !strncmp(qw[i], pw[j], 6);
-        found += hit;
+        const int hit = has_stem(pw, np, qw[i]);
+        const float wt = weight(m, qw[i], hit);
+        asked += wt, found += hit ? wt : 0.f;
     }
-    return content ? (double)found / content : 0.0;
+    return asked > 0.0 ? found / asked : 0.0;
 }
 
 /* ---- the question my own corpus answers word for word --------------------------- */
@@ -836,6 +865,83 @@ static int own_answer(const mlg_mind *m, const char *question, int id, char *out
         }
     }
     return 0;
+}
+
+/* x cut to fit cap bytes: at a sentence end when one falls in the second half, never inside a character */
+static int clip(const char *x, int xl, int cap) {
+    if (xl < cap) return xl;
+    int n = cap - 1;
+    while (n > 0 && ((unsigned char)x[n] & 0xC0) == 0x80) n--;
+    for (int i = n - 1; i > n / 2; i--)
+        if (x[i] == '.' && x[i + 1] == ' ') return i + 1;
+    return n;
+}
+
+/* a Portuguese plural made singular, as titles are written ("buracos negros" -> "buraco negro") */
+static void singular(const char *w, char *out, int cap) {
+    const int n = (int)strlen(w);
+    if (n > 4 && !strcmp(w + n - 3, "oes")) snprintf(out, cap, "%.*sao", n - 3, w);
+    else if (n > 4 && !strcmp(w + n - 3, "aes")) snprintf(out, cap, "%.*sao", n - 3, w);
+    else if (n > 4 && (!strcmp(w + n - 3, "res") || !strcmp(w + n - 3, "zes") || !strcmp(w + n - 3, "ses")))
+        snprintf(out, cap, "%.*s", n - 2, w);
+    else if (n > 3 && w[n - 1] == 's') snprintf(out, cap, "%.*s", n - 1, w);
+    else snprintf(out, cap, "%s", w);
+}
+
+/* the run w[i..i+len) as a title key, its words as written or made singular */
+static int run_key(char **w, int i, int len, int sing, char *out, int cap) {
+    int o = 0;
+    for (int j = i; j < i + len && o < cap - 1; j++) {
+        char x[128];
+        if (sing) singular(w[j], x, sizeof x);
+        else snprintf(x, sizeof x, "%s", w[j]);
+        o += snprintf(out + o, cap - o, "%s%s", j > i ? " " : "", x);
+    }
+    return o < cap ? o : -1;
+}
+
+/* The article the question names: the run of its words, rarest overall, that is
+ * a title in the index ("quem foi pedro alvares cabral", "me fale de portugal"),
+ * or else the title of a passage found that holds every word asked about
+ * ("napoleao" -> "Napoleão Bonaparte"). It must carry a good part of what is
+ * asked, or it is a word in passing. */
+static int subject(const mlg_mind *m, const char *text, const int *hits, int n_hits) {
+    char n[512];
+    norm(text, n, sizeof n);
+    char *w[64];
+    const int nw = words(n, w, 64);
+    double asked = 0.0, best_w = 0.0;
+    int best = -1;
+    for (int i = 0; i < nw; i++) asked += weight(m, w[i], 0);
+    for (int i = 0; i < nw; i++)
+        for (int len = 1; len <= 6 && i + len <= nw; len++) {
+            if (weight(m, w[i], 0) == 0.f || weight(m, w[i + len - 1], 0) == 0.f) continue;
+            double wt = 0.0;
+            for (int j = i; j < i + len; j++) wt += weight(m, w[j], 1);
+            if (wt <= best_w) continue;
+            for (int sing = 0; sing < 2; sing++) {
+                char g[256];
+                const int o = run_key(w, i, len, sing, g, sizeof g);
+                const int id = o > 0 ? mlg_know_lookup(m->know, g, o) : -1;
+                if (id >= 0) { best_w = wt, best = id; break; }
+            }
+        }
+    if (best < 0)
+        for (int h = 0; h < n_hits && h < 5; h++) {
+            int tl;
+            const char *title = mlg_know_title(m->know, hits[h], &tl);
+            if (tl >= 2 && !strncmp(title, MLG_TITLE, strlen(MLG_TITLE))) continue;
+            char tn[512];
+            const int k = mlg_normalize(title, tl, tn, sizeof tn - 1);
+            tn[k] = 0;
+            char *tw[32];
+            const int ntw = words(tn, tw, 32);
+            int all = 1, any = 0;
+            for (int i = 0; i < nw; i++)
+                if (weight(m, w[i], 0) > 0.f) any = 1, all &= has_word(tw, ntw, w[i]);
+            if (any && all) { best = mlg_know_lead(m->know, hits[h]), best_w = asked; break; }
+        }
+    return asked > 0.0 && best_w >= 0.4 * asked ? best : -1;
 }
 
 /* ---- thinking ------------------------------------------------------------------ */
@@ -900,6 +1006,27 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
         abilities(m, t->reply, sizeof t->reply);
         copy(t->organ, sizeof t->organ, "self");
         return t->final = 1;
+    }
+    /* a curiosity: the opening of an article picked at random, not words a brain made up */
+    if (!about_user && m->know && asks_curiosity(text)) {
+        uint64_t r = (uint64_t)m->now * 6364136223846793005ULL + m->turn * 1442695040888963407ULL + 1;
+        const int nd = mlg_know_count(m->know);
+        for (int tries = 0; tries < 200 && nd > 0; tries++) {
+            r = r * 6364136223846793005ULL + 1442695040888963407ULL;
+            const int id = mlg_know_lead(m->know, (int)((r >> 33) % (uint64_t)nd));
+            int tl, xl;
+            const char *title = mlg_know_title(m->know, id, &tl), *x = mlg_know_text(m->know, id, &xl);
+            if (tl < 2 || tl > 80 || !strncmp(title, MLG_TITLE, strlen(MLG_TITLE)) || xl < 200) continue;
+            int end = 0;  /* the first sentence, if it is a whole one of a reasonable size */
+            for (int i = 60; i < xl && i < 320 && !end; i++)
+                if (x[i] == '.' && (i + 1 == xl || x[i + 1] == ' ') && !(x[i - 2] == ' ' || x[i - 2] == '.')) end = i + 1;
+            if (!end) continue;
+            snprintf(t->evidence_title, sizeof t->evidence_title, "%.*s", tl, title);
+            snprintf(t->evidence, sizeof t->evidence, "%.*s", clip(x, xl, sizeof t->evidence), x);
+            snprintf(t->reply, sizeof t->reply, "Uma curiosidade, sobre %.*s: %.*s", tl, title, end, x);
+            copy(t->organ, sizeof t->organ, "knowledge");
+            return t->final = 1;
+        }
     }
     if (says_nothing(text)) {
         char q[96];
@@ -978,20 +1105,47 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
     /* knowledge, chat, or arithmetic it could not do exactly: evidence first */
     char ctx[1400] = "";
     if (m->know) {
-        int ids[8];
-        float sc[8];
-        const int n = mlg_know_search(m->know, text, 8, ids, sc);
-        for (int i = 0, used = 0; i < n && used < 2; i++) {
-            if (sc[i] < 4.f || (used && sc[i] < sc[0] * 0.6f)) break;  /* weak matches are not evidence */
+        /* searched by what it asks about: "quantos" and "tem" would find every "quantos ... tem" */
+        char nq[512], query[512] = "";
+        norm(text, nq, sizeof nq);
+        char *qw[64];
+        const int nqw = words(nq, qw, 64);
+        for (int i = 0, o = 0; i < nqw; i++)
+            if (weight(m, qw[i], 0) > 0.f) o += snprintf(query + o, sizeof query - o, "%s%s", o ? " " : "", qw[i]);
+        int ids[16];
+        float sc[16];
+        const int n = query[0] ? mlg_know_search(m->know, query, 16, ids, sc) : 0;
+        /* the article the question names speaks first: the passage of it that covers the
+         * question best ("população de Angola"), its lead otherwise */
+        const int lead = subject(m, text, ids, n);
+        int first = lead;
+        if (lead >= 0) {
+            double best_c = -1.0;
+            for (int i = -1; i < n; i++) {
+                const int id = i < 0 ? lead : ids[i];
+                if (i >= 0 && (id == lead || mlg_know_lead(m->know, id) != lead)) continue;
+                int xl, tl;
+                const char *x = mlg_know_text(m->know, id, &xl), *title = mlg_know_title(m->know, id, &tl);
+                char whole[1600];
+                snprintf(whole, sizeof whole, "%.*s %.*s", tl, title, xl < 1200 ? xl : 1200, x);
+                const double c = coverage(m, text, whole);
+                if (c > best_c + 1e-6) best_c = c, first = id;
+            }
+        }
+        int used = 0;
+        for (int i = -2; i < n && used < 2; i++) {
+            const int id = i == -2 ? first : i == -1 ? (lead != first ? lead : -1) : ids[i];
+            if (id < 0 || (i >= 0 && (id == lead || id == first))) continue;
+            if (i >= 0 && (sc[i] < 4.f || (used && sc[i] < sc[0] * 0.6f))) break;  /* weak matches are not evidence */
             int xl, tl;
-            const char *x = mlg_know_text(m->know, ids[i], &xl), *title = mlg_know_title(m->know, ids[i], &tl);
+            const char *x = mlg_know_text(m->know, id, &xl), *title = mlg_know_title(m->know, id, &tl);
             char whole[1600];
             snprintf(whole, sizeof whole, "%.*s %.*s", tl, title, xl < 1200 ? xl : 1200, x);
-            if (coverage(text, whole) < 0.6) continue;  /* about something else */
+            if (i >= 0 && coverage(m, text, whole) < 0.6) continue;  /* about something else */
             if (!used++) {
                 snprintf(t->evidence_title, sizeof t->evidence_title, "%.*s", tl, title);
-                snprintf(t->evidence, sizeof t->evidence, "%.*s", xl < 500 ? xl : 500, x);
-                t->evidence_score = sc[i];
+                snprintf(t->evidence, sizeof t->evidence, "%.*s", clip(x, xl, sizeof t->evidence), x);
+                t->evidence_score = i < 0 ? 0.f : sc[i];
             }
             int keep = xl < 420 ? xl : 420;  /* the cut the lab trained with (mlgsub/know.py CONTEXT) */
             while (keep < xl && keep > 0 && (x[keep] & 0xC0) == 0x80) keep--;
@@ -1011,35 +1165,37 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
     return t->final = 0;
 }
 
-/* The sentences of the evidence that answer the question best (by shared words), in their order. */
-static void extract(const char *question, const char *evidence, char *out, int cap) {
-    char ev[600], q[512];
+/* The sentences of the evidence that answer the question best (by what they share
+ * with it, rare words weighing most), in their order. */
+static void extract(const mlg_mind *m, const char *question, const char *evidence, char *out, int cap) {
+    char ev[1600], q[512];
     copy(ev, sizeof ev, evidence);
     norm(question, q, sizeof q);
     char *qw[64];
     const int nq = words(q, qw, 64);
-    char *sent[24];
+    char *sent[48];
     int ns = 0;
     char *st = ev;
-    for (char *p = ev; *p && ns < 24; p++)  /* sentences end at . ! ? followed by a space */
+    for (char *p = ev; *p && ns < 48; p++)  /* sentences end at . ! ? followed by a space */
         if (strchr(".!?", *p) && p[1] == ' ') {
             p[1] = 0;
             sent[ns++] = st;
             st = p + 2;
             p++;
         }
-    if (*st && ns < 24) sent[ns++] = st;
+    if (*st && ns < 48) sent[ns++] = st;
     if (!ns) { copy(out, cap, evidence); return; }
-    int best = 0, best_s = -1;
+    int best = 0;
+    double best_s = -1.0;
     for (int i = 0; i < ns; i++) {
-        char sn[600];
+        char sn[1600];
         norm(sent[i], sn, sizeof sn);
         char *sw[96];
         const int nw = words(sn, sw, 96);
-        int sc = 0;
+        double sc = 0.0;
         for (int a = 0; a < nq; a++)
-            if (strlen(qw[a]) > 3 && has_word(sw, nw, qw[a])) sc++;
-        if (sc > best_s) best_s = sc, best = i;
+            if (has_stem(sw, nw, qw[a])) sc += weight(m, qw[a], 1);
+        if (sc > best_s + 1e-6) best_s = sc, best = i;
     }
     if (best + 1 < ns && strlen(sent[best]) < 160) snprintf(out, cap, "%s %s", sent[best], sent[best + 1]);
     else copy(out, cap, sent[best]);
@@ -1047,12 +1203,12 @@ static void extract(const char *question, const char *evidence, char *out, int c
 
 /* share of the answer's content words that the evidence or the question contain */
 static double grounded(const char *answer, const char *evidence, const char *question) {
-    char a[2048], e[1200], en[1200];
+    char a[2048], e[2600], en[2600];
     norm(answer, a, sizeof a);
     snprintf(e, sizeof e, "%s %s", evidence, question);
     norm(e, en, sizeof en);
-    char *aw[160], *ew[200];
-    const int na = words(a, aw, 160), ne = words(en, ew, 200);
+    char *aw[160], *ew[480];
+    const int na = words(a, aw, 160), ne = words(en, ew, 480);
     int content = 0, found = 0;
     for (int i = 0; i < na; i++)
         if (strlen(aw[i]) > 3) content++, found += has_word(ew, ne, aw[i]);
@@ -1108,8 +1264,13 @@ void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, c
     if (ok) { copy(out, cap, s); return; }
     if (t->evidence[0]) {
         char best[700];
-        extract(q, t->evidence, best, sizeof best);
-        snprintf(out, cap, "Pelo que eu sei: %s", best);
+        extract(m, q, t->evidence, best, sizeof best);
+        char in_context[1000];  /* a sentence is read within its article: "Marrocos" is said by the title */
+        snprintf(in_context, sizeof in_context, "%s %s", starts(t->evidence_title, MLG_TITLE) ? "" : t->evidence_title, best);
+        if (coverage(m, q, in_context) >= 0.7) snprintf(out, cap, "Pelo que eu sei: %s", best);
+        else if (starts(t->evidence_title, MLG_TITLE) || !t->evidence_title[0])
+            snprintf(out, cap, "Não achei exatamente isso. O que eu sei de mais perto: %s", best);
+        else snprintf(out, cap, "Não achei exatamente isso. Sobre %s, eu sei que: %s", t->evidence_title, best);
     } else {
         copy(out, cap, "Não sei responder isso ainda. Me pergunte de outro jeito, ou me ensine: \"lembra que...\".");
     }
@@ -1152,7 +1313,7 @@ int mlg_mind_speak(mlg_mind *m, const mlg_thought *t, char *out, int cap, mlg_on
 
 /* The thought as JSON, for the HUD and the lab. */
 int mlg_mind_thought_json(const mlg_mind *m, const mlg_thought *t, char *out, int cap) {
-    char reply[4200], prompt[8400], ev[1100], evt[520];
+    char reply[4200], prompt[8400], ev[3200], evt[520];
     json_escape(t->reply, reply, sizeof reply);
     json_escape(t->prompt, prompt, sizeof prompt);
     json_escape(t->evidence, ev, sizeof ev);

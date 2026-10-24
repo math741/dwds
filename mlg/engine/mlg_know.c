@@ -43,7 +43,53 @@ struct mlg_know {
     const unsigned char *postings, *strings;
     float *score;     /* per doc, zero between searches */
     uint32_t *touched;
+    uint32_t *titles; /* open addressing: lead passage id + 1 of each article, by its title */
+    uint32_t n_titles;
 };
+
+/* An article's title as asked for: normalized, without its "(disambiguation)". */
+static int title_key(const char *title, int len, char *out, int cap) {
+    for (int i = 0; i + 1 < len; i++)
+        if (title[i] == ' ' && title[i + 1] == '(') { len = i; break; }
+    const int n = mlg_normalize(title, len, out, cap - 1);
+    out[n] = 0;
+    return n;
+}
+
+static int same_title(const mlg_know *k, uint32_t a, uint32_t b) {
+    return k->docs[a].title_len == k->docs[b].title_len &&
+           !memcmp(k->strings + k->docs[a].off, k->strings + k->docs[b].off, k->docs[a].title_len);
+}
+
+/* the first passage of every article (its lead), found by title in O(1) */
+static int index_titles(mlg_know *k) {
+    uint32_t leads = 0;
+    for (uint32_t i = 0; i < k->n_docs; i++) leads += !i || !same_title(k, i, i - 1);
+    uint32_t cap = 16;
+    while (cap < 2 * leads) cap <<= 1;
+    k->titles = calloc(cap, sizeof(uint32_t));
+    if (!k->titles) return 0;
+    k->n_titles = cap;
+    char key[512];
+    for (uint32_t i = 0; i < k->n_docs; i++) {
+        if (i && same_title(k, i, i - 1)) continue;
+        const char *t = (const char *)k->strings + k->docs[i].off;
+        const int tl = (int)k->docs[i].title_len;
+        if (tl >= 2 && (unsigned char)t[0] == 0xC2 && (unsigned char)t[1] == 0xA7) continue;  /* the MLG's own "§" passages */
+        const int n = title_key(t, tl, key, sizeof key);
+        if (n <= 0) continue;
+        uint32_t h = mlg_hash(key, n) & (cap - 1);
+        while (k->titles[h]) {
+            char other[512];
+            const uint32_t o = k->titles[h] - 1;
+            if (title_key((const char *)k->strings + k->docs[o].off, (int)k->docs[o].title_len, other, sizeof other) == n &&
+                !memcmp(other, key, n)) break;  /* the first article of a title wins */
+            h = (h + 1) & (cap - 1);
+        }
+        if (!k->titles[h]) k->titles[h] = i + 1;
+    }
+    return 1;
+}
 
 static mlg_know *know_parse(mlg_know *k, char *err, int errlen) {
 #define FAIL(...) do { if (err) snprintf(err, errlen, __VA_ARGS__); mlg_know_close(k); return NULL; } while (0)
@@ -65,7 +111,7 @@ static mlg_know *know_parse(mlg_know *k, char *err, int errlen) {
     k->strings = p + off[3];
     k->score = calloc(k->n_docs ? k->n_docs : 1, sizeof(float));
     k->touched = malloc(sizeof(uint32_t) * (k->n_docs ? k->n_docs : 1));
-    if (!k->score || !k->touched) FAIL("out of memory");
+    if (!k->score || !k->touched || !index_titles(k)) FAIL("out of memory");
     return k;
 #undef FAIL
 }
@@ -119,7 +165,7 @@ void mlg_know_close(mlg_know *k) {
     if (k->map && !k->owned) munmap(k->map, k->size);
 #endif
     if (k->owned) free(k->map);
-    free(k->score), free(k->touched), free(k);
+    free(k->score), free(k->touched), free(k->titles), free(k);
 }
 
 int mlg_know_count(const mlg_know *k) { return (int)k->n_docs; }
@@ -177,6 +223,29 @@ int mlg_know_search(const mlg_know *k, const char *query, int top, int *ids, flo
         k->score[d] = 0.f;
     }
     return found;
+}
+
+int mlg_know_lookup(const mlg_know *k, const char *key, int n) {
+    if (!k->n_titles || n <= 0) return -1;
+    uint32_t h = mlg_hash(key, n) & (k->n_titles - 1);
+    char other[512];
+    for (; k->titles[h]; h = (h + 1) & (k->n_titles - 1)) {
+        const uint32_t o = k->titles[h] - 1;
+        if (title_key((const char *)k->strings + k->docs[o].off, (int)k->docs[o].title_len, other, sizeof other) == n &&
+            !memcmp(other, key, n)) return (int)o;
+    }
+    return -1;
+}
+
+int mlg_know_lead(const mlg_know *k, int id) {
+    if (id < 0 || (uint32_t)id >= k->n_docs) return -1;
+    while (id > 0 && same_title(k, (uint32_t)id, (uint32_t)id - 1)) id--;
+    return id;
+}
+
+float mlg_know_idf(const mlg_know *k, const char *word, int n) {
+    const term_rec *t = find(k, mlg_hash(word, n));
+    return t ? logf(1.f + (k->n_docs - t->df + 0.5f) / (t->df + 0.5f)) : -1.f;
 }
 
 const char *mlg_know_title(const mlg_know *k, int id, int *len) {

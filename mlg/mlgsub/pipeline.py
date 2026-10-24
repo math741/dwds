@@ -25,8 +25,8 @@ from .substrate import connect
 ROOT = os.path.join(os.path.dirname(__file__), "..", "data")
 # The training recipe (data mix, filters). A brain matured under an older one
 # is matured again, starting from the champion, when the notebook runs.
-RECIPE = 2
-STUB_BYTES = 1500  # Wikipedia articles shorter than this are stubs ("X é um município...")
+RECIPE = 3
+STUB_BYTES = know.STUB_BYTES
 CLI = os.path.join(os.path.dirname(__file__), "..", "engine", "mlg_cli")
 
 
@@ -95,29 +95,8 @@ class Run:
 
     # ---- II. feeding ---------------------------------------------------------------
     def wikipedia(self, mb):
-        """Portuguese Wikipedia, title<TAB>text per line (paragraphs split by two spaces),
-        kept in home so later runs do not download it again."""
-        path = self.path(f"wiki-pt-{mb}.tsv")
-        if os.path.exists(path) and os.path.getsize(path) >= mb * 2**20 * 0.95:
-            return path
-        from datasets import load_dataset
-
-        self.log(f"[feeding] streaming {mb} MiB of Portuguese Wikipedia")
-        stream = load_dataset("wikimedia/wikipedia", "20231101.pt", split="train", streaming=True)
-        n = 0
-        with open(path + ".part", "w", encoding="utf-8") as fh:
-            for row in stream:
-                title = " ".join(row["title"].split())
-                paras = [" ".join(p.split()) for p in row["text"].split("\n") if len(p.strip()) > 40]
-                if not paras:
-                    continue
-                line = f"{title}\t{'  '.join(paras)}\n"
-                fh.write(line)
-                n += len(line.encode())
-                if n >= mb * 2**20:
-                    break
-        os.replace(path + ".part", path)
-        return path
+        """Portuguese Wikipedia, kept in home so later runs do not download it again."""
+        return know.download_wikipedia(self.path(f"wiki-pt-{mb}.tsv"), mb, log=self.log)
 
     def feed(self, wiki_mb=1024):
         held = B.held_lines(self.root)
@@ -130,11 +109,15 @@ class Run:
                 with open(tsv, encoding="utf-8") as src, open(self.wiki_txt, "w", encoding="utf-8") as dst:
                     for line in src:
                         title, _, text = line.rstrip("\n").partition("\t")
-                        if len(text) < STUB_BYTES:
+                        if len(text) < STUB_BYTES or know.calendar(title):
+                            stubs += 1
+                            continue
+                        paras = [know.tidy(p) for p in text.split("  ") if know.prose(p)]
+                        if not paras:
                             stubs += 1
                             continue
                         kept += 1
-                        dst.write(f"{title}\n\n" + "\n".join(text.split("  ")) + "\n\n")
+                        dst.write(f"{title}\n\n" + "\n".join(paras) + "\n\n")
                 self.log(f"[feeding] {kept:,} Wikipedia articles kept, {stubs:,} stubs left out")
                 wiki = list(know.wiki_passages(tsv, min_article=STUB_BYTES))
             except Exception as e:
@@ -153,16 +136,11 @@ class Run:
         del passages, wiki
 
     def train_router(self):
-        import random
-
-        qs = sorted({q for q, _ in know.dialog_pairs(self.root, ["core/data/corpus-dialog.txt"])})
-        w, b, acc = R.train(R.examples(random.Random(0), per_intent=300 if self.quick else 1500,
-                                       corpus_questions=qs), log=self.log)
-        R.write(os.path.join(self.scratch, "router.mlgr"), w, b)
-        self.router_acc = acc
+        self.router_acc = R.build(self.root, os.path.join(self.scratch, "router.mlgr"),
+                                  per_intent=300 if self.quick else 1500, log=self.log)
         self.sub.obj("Brain", "router:intent", origin="router.train", epistemic="TESTED", kind="router",
-                     intents=len(R.INTENTS), held_out_accuracy=acc)
-        self.sub.event("ROUTER_TRAINED", "router:intent", accuracy=acc)
+                     intents=len(R.INTENTS), held_out_accuracy=self.router_acc)
+        self.sub.event("ROUTER_TRAINED", "router:intent", accuracy=self.router_acc)
 
     def load_corpus(self):
         self.corpus = B.Corpus(self.root, self.body.device, extra=[self.wiki_txt] if self.wiki_txt else [],
@@ -262,6 +240,8 @@ class Run:
         }
         with open(os.path.join(out, "manifest.json"), "w") as fh:
             json.dump(manifest, fh, indent=1)
+        if report["passed"] and self.lnk:  # the Quest can take it now, over the link, with no release
+            self.lnk.offer(core, {"version": manifest["version"], "core": manifest["core"], "behaviour": report})
         self.sub.event("EXPORTED", c["brain"], version=manifest["version"], qroot_bpb_deployed=engine_bpb)
         self.log(f"[export] {c['brain']}: q8 core {files['core.mlgb']['bytes'] / 2**20:.1f} MiB, "
                  f"Q root {c.get('qroot_bpb', 0):.3f} bpb in the lab, {engine_bpb:.3f} bpb in the headset engine; "
@@ -277,8 +257,8 @@ class Run:
                      "O Quest continua com o anterior.")
             return None
         if not token:
-            self.log("[publish] sem GITHUB_TOKEN nos Secrets: os órgãos ficaram no Drive (MLG/quest). "
-                     "Copie para o Quest em Android/data/ai.mlg.zero/files/mind, ou adicione o token e rode esta célula.")
+            self.log("[publish] sem GITHUB_TOKEN nos Secrets: o Resident Core vai para o Quest pelo link (deixe esta "
+                     "sessão aberta até o Quest dizer que recebeu). Os órgãos também ficaram no Drive (MLG/quest).")
             return None
         api, h = f"https://api.github.com/repos/{repo}", {"Authorization": f"Bearer {token}",
                                                           "Accept": "application/vnd.github+json"}
@@ -301,7 +281,9 @@ class Run:
             self.log(f"[publish] {n} enviado")
         url = f"https://github.com/{repo}/releases/tag/{tag}"
         self.sub.event("PUBLISHED", self.furnace.champion["brain"], url=url)
-        self.log(f"[publish] pronto: o app no Quest baixa sozinho na próxima vez que abrir ({url})")
+        if self.lnk:
+            self.lnk.publish("train", {"published": url})
+        self.log(f"[publish] pronto: o app no Quest baixa sozinho ({url})")
         return url
 
     def ask(self, question):

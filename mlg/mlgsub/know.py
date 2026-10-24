@@ -78,6 +78,65 @@ def chunks(text, size=PASSAGE):
         yield cur
 
 
+# A Wikipedia paragraph is prose when it reads as sentences: it ends like one,
+# has a dozen words, and is not a bibliography entry, a citation or a list item
+# ("Vianna, Hélio. História do Brasil... 1994.", "Thalurania furcata - Beija-flor").
+_CITATION = re.compile(r"ISBN|ISSN|Consultado em|Arquivado|\bdoi\b|\bpp?\. ?\d|\bed\. |Editora|Retrieved|"
+                       r"^[A-ZÀ-Ý][^\s,.]+, [A-ZÀ-Ý][^.]{0,60}\. ")
+
+
+_LIST_ITEM = re.compile(r"^\d{1,4}\s*[—–-]\s")  # "1481 — O maior dos três terremotos..." (date pages)
+
+
+_CALENDAR = re.compile(r"^\d{1,2} de (janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|"
+                       r"dezembro)$|^\d{1,4}( a\.C\.)?$|^Década de|^Século ")
+
+
+_EMPTY_PARENS = re.compile(r"\s*\((?:\s*[;,]\s*)*\)")  # what is left of stripped pronunciations: "Marrocos (; ; )"
+
+
+def tidy(paragraph):
+    return _EMPTY_PARENS.sub("", paragraph)
+
+
+def calendar(title):
+    """Date, year and century pages: lists of events, not prose."""
+    return bool(_CALENDAR.match(title))
+
+
+def prose(paragraph):
+    p = paragraph.strip()
+    return (len(p.split()) >= 12 and p[-1] in '.!?"»' and not _CITATION.search(p) and not _LIST_ITEM.match(p))
+
+
+STUB_BYTES = 1500  # Wikipedia articles shorter than this are stubs ("X é um município...")
+
+
+def download_wikipedia(path, mb, log=print):
+    """Portuguese Wikipedia, title<TAB>text per line (paragraphs split by two spaces),
+    kept at `path` so later runs do not download it again."""
+    if os.path.exists(path) and os.path.getsize(path) >= mb * 2**20 * 0.95:
+        return path
+    from datasets import load_dataset
+
+    log(f"[feeding] streaming {mb} MiB of Portuguese Wikipedia")
+    stream = load_dataset("wikimedia/wikipedia", "20231101.pt", split="train", streaming=True)
+    n = 0
+    with open(path + ".part", "w", encoding="utf-8") as fh:
+        for row in stream:
+            title = " ".join(row["title"].split())
+            paras = [" ".join(p.split()) for p in row["text"].split("\n") if len(p.strip()) > 40]
+            if not paras:
+                continue
+            line = f"{title}\t{'  '.join(paras)}\n"
+            fh.write(line)
+            n += len(line.encode())
+            if n >= mb * 2**20:
+                break
+    os.replace(path + ".part", path)
+    return path
+
+
 def wiki_passages(path, limit_bytes=None, min_article=0):
     """Articles as written by the notebook: one per line, title<TAB>text,
     paragraphs separated by two spaces. Articles shorter than `min_article`
@@ -86,10 +145,12 @@ def wiki_passages(path, limit_bytes=None, min_article=0):
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             title, _, text = line.rstrip("\n").partition("\t")
-            if not text or len(text) < min_article:
+            if not text or len(text) < min_article or calendar(title):
                 continue
             for para in text.split("  "):
-                for p in chunks(para):
+                if not prose(para):
+                    continue
+                for p in chunks(tidy(para)):
                     if len(p) > 80:
                         yield title, p
             seen += len(line)

@@ -366,7 +366,7 @@ function renderBody() {
 const organs = {};
 function renderOrgans() {
   const rows = [];
-  if (organs.core) rows.push(["Resident Core", organs.core.ok ? `${organs.core.shape} · ${(organs.core.params / 1e6).toFixed(1)}M` : "ausente"]);
+  if (organs.core) rows.push(["Resident Core", organs.core.ok ? `${organs.core.shape} · ${(organs.core.params / 1e6).toFixed(1)}M${organs.core.via === "link" ? " · via link" : ""}` : "ausente"]);
   else rows.push(["Resident Core", "esperando o laboratório"]);
   rows.push(["Busca", organs.knowledge ? `${organs.knowledge.passages.toLocaleString("pt-BR")} trechos` : "ausente"]);
   rows.push(["Roteador", organs.router ? `${organs.router.intents.length} intenções` : "regras simples"]);

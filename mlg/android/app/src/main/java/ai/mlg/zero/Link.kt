@@ -124,7 +124,7 @@ class Link(code: String, private val onMessage: (String, JSONObject) -> Unit, pr
                 val qos = (t shr 1) and 3
                 val start = 2 + tl + if (qos > 0) 2 else 0
                 val kind = topic.substringAfterLast('/')
-                if (kind in setOf("ask", "hello", "body")) continue  // our own messages, echoed
+                if (kind in setOf("ask", "hello", "body", "pull")) continue  // our own messages, echoed
                 open(body.copyOfRange(start, body.size))?.let { onMessage(kind, it) }
             }
             pinger.interrupt()

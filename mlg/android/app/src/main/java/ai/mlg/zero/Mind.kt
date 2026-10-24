@@ -14,6 +14,7 @@ import java.io.File
 import java.util.TimeZone
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.Base64
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -33,10 +34,12 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         private set
     val trust = Trust(File(dir, "trust.log"))
     val voice = Voice(ctx) { k, v -> emit(k, JSONObject().put("v", v)) }
-    private val brains = Brains(dir, BuildConfig.BRAIN_URL, { note(it) },
+    private val brains = Brains(dir, BuildConfig.BRAIN_URL, BuildConfig.ORGANS_URL, { note(it) },
         { name, got, total -> emit("download", JSONObject().put("name", name).put("got", got).put("total", total)) })
     private val worker = Executors.newSingleThreadExecutor()  // one thought at a time
     private val drafts = Executors.newSingleThreadExecutor()  // the lab brain's attempts, beside the answers
+    private val clock = Executors.newSingleThreadScheduledExecutor()  // new organs, a core arriving over the link
+    @Volatile private var transfer: Transfer? = null
     private val mind = Native.mindNew(File(dir, "memory.jsonl").path)
     private var core = 0L
     private var know = 0L
@@ -80,9 +83,11 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         Native.mindOrgans(mind, router, know, core)
         emit("phase", JSONObject().put("v", "ready"))
         trust.event("BODY_KNOWN", body)
-        val man = brains.manifest()?.optJSONObject("behaviour")
-        if (man != null) note("Prova de comportamento do laboratório: obrigatórias ${man.optInt("must_passed")}/${man.optInt("must")}, " +
-            "qualidade ${man.optInt("quality_passed")}/${man.optInt("quality")}.")
+        val man = (brains.core()?.second ?: brains.manifest())?.optJSONObject("behaviour")
+        if (man != null) note("Prova de comportamento do laboratório: obrigatórias ${man.optInt("must_passed")}/${man.optInt("must")}" +
+            (if (man.optInt("quality") > 0) ", qualidade ${man.optInt("quality_passed")}/${man.optInt("quality")}." else "."))
+        clock.scheduleWithFixedDelay({ worker.execute { refresh() } }, 20, 20, TimeUnit.MINUTES)
+        clock.scheduleWithFixedDelay({ watchTransfer() }, 2, 2, TimeUnit.SECONDS)
         reply(if (core != 0L) "Estou acordada. Medi meu corpo e meus órgãos passaram no selo."
               else "Estou acordada, mas meu Resident Core ainda não chegou do laboratório. Já sei calcular, lembrar, " +
                    "medir meu corpo e responder o que está no meu conhecimento.", "social")
@@ -106,7 +111,6 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             note("$b não confere com o selo do laboratório: recusado")
             trust.event("TRUST_FAIL", JSONObject().put("file", b))
         }
-        val man = brains.manifest()
         File(dir, "router.mlgr").takeIf { it.exists() && "router.mlgr" !in bad }?.let { f ->
             router = Native.routerOpen(f.path)
             emit("organ", JSONObject().put("name", "router").put("ok", router != 0L)
@@ -117,7 +121,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             emit("organ", JSONObject().put("name", "knowledge").put("ok", know != 0L)
                 .put("passages", if (know != 0L) Native.knowCount(know) else 0))
         }
-        File(dir, "core.mlgb").takeIf { it.exists() && "core.mlgb" !in bad }?.let { f ->
+        val chosen = brains.core()?.takeIf { it.first.name !in bad }
+        chosen?.first?.let { f ->
             val h = Native.coreOpen(f.path)
             if (h == 0L) { note("Resident Core recusado: ${Native.lastError()}"); return@let }
             info = Native.coreInfo(h)
@@ -137,7 +142,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             // the Q root again, on this body: the engine must reproduce what the lab measured
             val q = runCatching { ctx.assets.open("language.txt").readBytes() }.getOrNull()
             val bpb = q?.let { Native.coreBitsPerByte(h, it) } ?: Double.NaN
-            val lab = man?.optJSONObject("core")?.optDouble("qroot_bpb_deployed", Double.NaN) ?: Double.NaN
+            val lab = chosen.second.optJSONObject("core")?.optDouble("qroot_bpb_deployed", Double.NaN) ?: Double.NaN
             measure("qroot_bpb", bpb, "bits/byte", "MEASURED")
             if (!lab.isNaN() && !bpb.isNaN() && kotlin.math.abs(bpb - lab) > 0.05) {
                 note("Meu motor mediu %.3f bits/byte no Q root e o laboratório %.3f: não confio, recuso o core".format(bpb, lab))
@@ -148,7 +153,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             core = h
             emit("organ", JSONObject().put("name", "core").put("ok", true).put("params", info!![8])
                 .put("shape", "d${info!![0]} L${info!![1]} E${info!![3]}k${info!![4]} ctx${info!![6]}")
-                .put("brain", man?.optJSONObject("core")?.optString("brain") ?: "").put("qroot_bpb", bpb))
+                .put("brain", chosen.second.optJSONObject("core")?.optString("brain") ?: "").put("qroot_bpb", bpb)
+                .put("via", if (f == brains.linkCore) "link" else "release"))
             trust.event("CORE_LOADED", JSONObject().put("params", info!![8]).put("qroot_bpb", bpb))
             report()
         }
@@ -199,7 +205,67 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
                 emit("train", data)
             }
             "say" -> labReplies[data.optString("id")]?.offer(data)
+            "offer" -> receive(data)
+            "part" -> transfer?.takeIf { it.sha == data.optString("sha256") }?.let { t ->
+                val whole = t.part(data.optInt("i"), Base64.getDecoder().decode(data.optString("data")))
+                emit("download", JSONObject().put("name", "core pelo link").put("got", t.received).put("total", t.size))
+                if (whole) arrived(t)
+            }
         }
+        if (kind == "train" && data.has("published")) worker.execute { refresh() }
+    }
+
+    // ---- organs arriving while awake --------------------------------------------------
+    /** The lab offers a sealed core: pull it, unless it is already here. */
+    private fun receive(offer: JSONObject) {
+        val sha = offer.optString("sha256")
+        if (sha.isEmpty() || brains.hasCore(sha) || transfer?.sha == sha) return
+        transfer?.close()
+        note("O laboratório me ofereceu um Resident Core selado (%.1f MiB). Recebendo pelo link…".format(offer.optLong("bytes") / 1048576.0))
+        transfer = Transfer(offer, File(dir, "core-link.part")) { from, count ->
+            link?.publish("pull", JSONObject().put("sha256", sha).put("from", from).put("count", count))
+        }.also { it.ask() }
+    }
+
+    private fun arrived(t: Transfer) {
+        transfer = null
+        if (!t.verified()) {
+            t.file.delete()
+            note("O core que chegou pelo link não confere com o hash selado: recusado")
+            trust.event("TRUST_FAIL", JSONObject().put("file", "core-link").put("sha256", t.sha))
+            return
+        }
+        brains.installLinkCore(t)
+        trust.event("CORE_RECEIVED", JSONObject().put("sha256", t.sha).put("via", "link"))
+        note("Resident Core recebido pelo link e conferido. Vou medi-lo no meu motor antes de usar.")
+        worker.execute { reloadOrgans() }
+    }
+
+    /** Parts lost on the way are asked for again; a link that went quiet for long gives up until the next offer. */
+    private fun watchTransfer() {
+        val t = transfer ?: return
+        if (link?.connected != true) return
+        if (t.stalled(120_000)) { t.close(); transfer = null; return }
+        if (t.stalled(6_000)) t.ask()
+    }
+
+    private fun refresh() {
+        if (runCatching { brains.update() }.getOrDefault(false)) reloadOrgans()
+    }
+
+    private fun reloadOrgans() {
+        emit("phase", JSONObject().put("v", "organs"))
+        Native.mindOrgans(mind, 0L, 0L, 0L)
+        if (core != 0L) Native.coreClose(core)
+        if (know != 0L) Native.knowClose(know)
+        if (router != 0L) Native.routerClose(router)
+        core = 0L; know = 0L; router = 0L; info = null; decodeMs = 0.0
+        loadOrgans()
+        Native.mindOrgans(mind, router, know, core)
+        emit("phase", JSONObject().put("v", "ready"))
+        hello()
+        reply(if (core != 0L) "Meus órgãos novos passaram no selo. Agora quem conversa é meu Resident Core."
+              else "Recebi órgãos novos: roteador e conhecimento. Meu Resident Core ainda está no laboratório.", "self")
     }
 
     private fun labStatus(): String {
@@ -298,6 +364,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     }
 
     fun close() {
+        clock.shutdownNow()
+        transfer?.close()
         drafts.shutdownNow()
         link?.stop()
         voice.close()

@@ -175,3 +175,14 @@ def route(w, b, text):
     for k, v in f.items():
         logits += w[:, k] * v
     return logits.softmax(0)
+
+
+def build(root, out, per_intent=1500, log=print):
+    """The router the headset carries, trained here from scratch on generated requests
+    and the questions of the MLG's own dialogs; returns its held-out accuracy."""
+    from . import know
+
+    qs = sorted({q for q, _ in know.dialog_pairs(root, ["core/data/corpus-dialog.txt"])})
+    w, b, acc = train(examples(random.Random(0), per_intent=per_intent, corpus_questions=qs), log=log)
+    write(out, w, b)
+    return acc

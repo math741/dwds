@@ -1,6 +1,8 @@
 package ai.mlg.zero
 
 import org.json.JSONObject
+import java.io.File
+import java.util.Base64
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -27,18 +29,30 @@ class LinkTest {
         link.publish("ask", JSONObject().put("id", "t1").put("prompt", "U: oi\nM:").put("max", 24))
         var mind = 0
         var answer = ""
-        val end = System.currentTimeMillis() + 30_000
-        while (System.currentTimeMillis() < end) {
+        var answered = false
+        var transfer: Transfer? = null
+        var verified = false
+        val file = File.createTempFile("core-link", ".part")
+        val end = System.currentTimeMillis() + 40_000
+        while (System.currentTimeMillis() < end && !(answered && verified)) {
+            transfer?.let { if (it.stalled(3_000)) it.ask() }  // what Mind.watchTransfer does
             val (k, d) = got.poll(1, TimeUnit.SECONDS) ?: continue
             if (k == "mind") mind += d.getJSONArray("items").length()
             if (k == "say" && d.optString("id") == "t1") {
                 answer += d.optString("chunk")
-                if (d.optBoolean("done")) break
+                if (d.optBoolean("done")) answered = true
             }
+            if (k == "offer" && transfer == null)
+                transfer = Transfer(d, file) { from, count ->
+                    link.publish("pull", JSONObject().put("sha256", d.getString("sha256")).put("from", from).put("count", count))
+                }.also { it.ask() }
+            if (k == "part" && transfer?.part(d.getInt("i"), Base64.getDecoder().decode(d.getString("data"))) == true)
+                verified = transfer!!.verified()
         }
         link.stop()
-        println("mind items: $mind, answer: ${answer.length} chars")
+        println("mind items: $mind, answer: ${answer.length} chars, core over the link: ${transfer?.received} bytes, verified $verified")
         assertTrue("the lab's living mind reached the headset", mind > 0)
         assertTrue("the lab brain answered", answer.isNotEmpty())
+        assertTrue("a core crossed the link, whole and with the sealed hash", verified)
     }
 }

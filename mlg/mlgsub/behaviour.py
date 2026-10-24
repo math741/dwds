@@ -5,7 +5,8 @@ Every "must" line has to pass. "quality" lines go through a Resident Core and
 are scored: an answer passes when it routes to an expected organ, matches what
 it must, avoids what it must not, and is not empty, looping or overlong.
 "bare" lines are what a body with no organ from the lab yet must still do; they
-run only on a bare mind (no core, no knowledge, no router).
+run only on a bare mind (no core, no knowledge, no router). "wiki" lines are what
+the knowledge index must answer on its own when it carries Wikipedia (no core).
 """
 import os
 import re
@@ -27,7 +28,7 @@ def load(path=SUITE):
     return rows
 
 
-def run(core=None, know=None, router=None, log=print, rows=None):
+def run(core=None, know=None, router=None, log=print, rows=None, wiki=False):
     """Runs the suite on a fresh mind; returns (results, report)."""
     memory = tempfile.mktemp(suffix=".jsonl")
     m = Mind(core=core, know=know, router=router, memory=memory)
@@ -38,6 +39,8 @@ def run(core=None, know=None, router=None, log=print, rows=None):
     bare = core is None and know is None and router is None
     for r in rows or load():
         if (r["gate"] == "quality" and core is None) or (r["gate"] == "bare") != bare:
+            continue
+        if r["gate"] == "wiki" and not (wiki and core is None):
             continue
         organ, reply = m.ask(r["input"])
         why = []
@@ -53,7 +56,7 @@ def run(core=None, know=None, router=None, log=print, rows=None):
     m.close()
     if os.path.exists(memory):
         os.remove(memory)
-    must = [x for x in results if x["gate"] in ("must", "bare")]
+    must = [x for x in results if x["gate"] in ("must", "bare", "wiki")]
     quality = [x for x in results if x["gate"] == "quality"]
     report = {"must_passed": sum(x["ok"] for x in must), "must": len(must),
               "quality_passed": sum(x["ok"] for x in quality), "quality": len(quality)}

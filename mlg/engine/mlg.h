@@ -72,6 +72,12 @@ int mlg_know_search(const mlg_know *k, const char *query, int top, int *ids, flo
 /* Passage text (UTF-8, not NUL-terminated) and its title. */
 const char *mlg_know_text(const mlg_know *k, int id, int *len);
 const char *mlg_know_title(const mlg_know *k, int id, int *len);
+/* the lead passage of the article titled `key` (normalized, as mlg_normalize writes it), or -1 */
+int mlg_know_lookup(const mlg_know *k, const char *key, int n);
+/* the first passage of the article passage `id` belongs to */
+int mlg_know_lead(const mlg_know *k, int id);
+/* BM25 idf of a normalized word, or -1 when the index does not hold it (never seen, or too common to keep) */
+float mlg_know_idf(const mlg_know *k, const char *word, int n);
 /* Lab side (mlg_know_build.c): index "title<TAB>text" lines. Returns passages or -1;
  * err receives a summary either way. */
 int mlg_know_build(const char *tsv, const char *out_path, float max_df, char *err, int errlen);
@@ -99,7 +105,7 @@ typedef struct {
     char reply[2048];
     char prompt[4096];      /* "C: evidence\nU: question\nM:" */
     char evidence_title[256];
-    char evidence[512];
+    char evidence[1536];    /* the passage the answer rests on (its start, or the lead of the article asked about) */
     float evidence_score;
 } mlg_thought;
 

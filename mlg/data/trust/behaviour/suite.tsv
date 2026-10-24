@@ -3,6 +3,7 @@
 # "must": no Resident Core needed; every line passes, or nothing is published.
 # "quality": answers that go through a Resident Core; a share of them must pass.
 # "bare": a body with no organ from the lab yet (no router, no knowledge, no core): every line passes.
+# "wiki": the knowledge index with Wikipedia, answering alone (no core): every line passes.
 must	Oi	social	.	
 must	Eai	social	.	
 must	valeu mlg	social	.	
@@ -48,3 +49,10 @@ bare	quem é você	self	MLG
 bare	como está a evolução?	lab	.	
 bare	Chora baby	core|trust	chora baby	não chegou do laborat[óo]rio, e não achei
 bare	me fala sobre dinossauros	core|trust	dinossauros	
+wiki	quem foi Pedro Álvares Cabral	knowledge|core	navegador|descobridor	
+wiki	me fale de Portugal	knowledge|core	pa[ií]s	
+wiki	fale sobre Einstein	knowledge|core	f[ií]sico	
+wiki	o que é capitalismo?	knowledge|core	econ[ôo]mic	
+wiki	qual a população de Angola?	knowledge|core	habitantes	
+wiki	me conta uma curiosidade	knowledge	curiosidade	
+wiki	qual a capital da alemanha?	knowledge|core|social|procedural|memory|body|lab|self	.	paris

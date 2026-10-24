@@ -13,9 +13,13 @@ What flows, under mlg/<topic>/...:
     say     lab -> headset   the lab brain's answer, streamed; "sealed" when that brain passed
                              the behaviour suite (until then the headset shows it as a draft)
     ask     headset -> lab   a prompt for the lab brain (the headset routes, retrieves and builds it)
+    offer   lab -> headset   a sealed Resident Core is ready: its sha256, size, what the lab measured
+    pull    headset -> lab   send me parts [from, from + count) of the core with this sha256
+    part    lab -> headset   one part of it, base64; the headset keeps the file only if it hashes right
     hello   headset -> lab   a headset arrived: the lab replies with the whole mind so far
     body    headset -> lab   the headset's own measurements (its awakening)
 """
+import base64
 import codecs
 import hashlib
 import json
@@ -26,6 +30,8 @@ import time
 
 BROKERS = [("broker.emqx.io", 8883, True), ("broker.hivemq.com", 8883, True), ("test.mosquitto.org", 8886, True)]
 ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+CHUNK = 32 * 1024  # bytes of a core per part: well under what public brokers carry
 
 
 def new_code():
@@ -63,11 +69,13 @@ class Link:
         self.frac = 0.0
         self.sub = None
         self.field_report = None      # the headset's own measurements
+        self.offering = None          # the sealed core the headset may pull, and where it is
+        self.pulls = queue.Queue()
         self.headsets = 0
         self._last_train = 0.0
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="mlg-lab-" + os.urandom(4).hex())
         self.client.on_connect = lambda c, u, f, rc, p=None: c.subscribe(
-            [(f"{self.base}/ask", 0), (f"{self.base}/hello", 0), (f"{self.base}/body", 0)])
+            [(f"{self.base}/{k}", 0) for k in ("ask", "hello", "body", "pull")])
         self.client.on_message = self._on_message
         self.broker = None
         tls_ready = False
@@ -85,6 +93,7 @@ class Link:
             raise ConnectionError("no MQTT broker reachable")
         self.client.loop_start()
         threading.Thread(target=self._flusher, daemon=True).start()
+        threading.Thread(target=self._send_parts, daemon=True).start()
         log(f"[link] lab online at {self.broker}, waiting for the headset (code {code[:4]}-…)")
 
     # ---- sealed messages ---------------------------------------------------
@@ -110,6 +119,10 @@ class Link:
             self.headsets += 1
             self.log(f"[link] headset connected: {data.get('device', 'Quest')}")
             threading.Thread(target=self._snapshot, daemon=True).start()
+            if self.offering:
+                self.publish("offer", self.offering[0])
+        elif kind == "pull":
+            self.pulls.put(data)
         elif kind == "body":
             self.field_report = data
             self.log(f"[link] the headset measured itself: {data.get('decode_ms', 0):.2f} ms/byte, "
@@ -215,6 +228,33 @@ class Link:
                    temperature=float(ask.get("temp", 0.6)), top_p=0.9, seed=int(time.time()), on_byte=on_byte)
         self.publish("say", {"id": ask.get("id"), "chunk": "".join(buf) + dec.decode(b"", final=True),
                              "done": True, "brain": bid, **trained})
+
+    # ---- a sealed core, delivered over the link -----------------------------
+    def offer(self, path, meta):
+        """Let the headset pull this Resident Core (it passed the behaviour suite): no
+        release, no token. `meta` is what the lab measured (version, core, behaviour)."""
+        from .export import sha256
+
+        info = dict(meta, name="core.mlgb", sha256=sha256(path), bytes=os.path.getsize(path), chunk=CHUNK)
+        self.offering = (info, path)
+        self.publish("offer", info)
+        self.log(f"[link] Resident Core oferecido ao Quest pelo link ({info['bytes'] / 2**20:.1f} MiB, "
+                 f"sha256 {info['sha256'][:12]}…): ele baixa sozinho quando estiver ligado")
+
+    def _send_parts(self):
+        while True:
+            req = self.pulls.get()
+            if not self.offering or req.get("sha256") != self.offering[0]["sha256"]:
+                continue
+            info, path = self.offering
+            first, count = int(req.get("from", 0)), min(int(req.get("count", 8)), 32)
+            with open(path, "rb") as fh:
+                for i in range(max(0, first), first + count):
+                    fh.seek(i * CHUNK)
+                    data = fh.read(CHUNK)
+                    if not data:
+                        break
+                    self.publish("part", {"sha256": info["sha256"], "i": i, "data": base64.b64encode(data).decode()})
 
     def serve(self, seconds=None):
         """Keep the lab brain available to the headset (the last notebook cell)."""

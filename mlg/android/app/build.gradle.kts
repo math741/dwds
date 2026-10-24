@@ -20,6 +20,8 @@ android {
         ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         buildConfigField("String", "BRAIN_URL",
             "\"${System.getenv("MLG_BRAIN_URL") ?: "https://github.com/math741/dwds/releases/download/mlg-brain"}\"")
+        buildConfigField("String", "ORGANS_URL",
+            "\"${System.getenv("MLG_ORGANS_URL") ?: "https://github.com/math741/dwds/releases/download/mlg-organs"}\"")
     }
 
     // One fixed key, so every new APK installs over the last one and keeps the
