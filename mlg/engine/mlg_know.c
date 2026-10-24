@@ -45,6 +45,8 @@ struct mlg_know {
     uint32_t *touched;
     uint32_t *titles; /* open addressing: lead passage id + 1 of each article, by its title */
     uint32_t n_titles;
+    uint32_t *asks;   /* the same, for every question of the MLG's own "§ q1 | q2" passages */
+    uint32_t n_asks;
 };
 
 /* An article's title as asked for: normalized, without its "(disambiguation)". */
@@ -61,6 +63,60 @@ static int same_title(const mlg_know *k, uint32_t a, uint32_t b) {
            !memcmp(k->strings + k->docs[a].off, k->strings + k->docs[b].off, k->docs[a].title_len);
 }
 
+static int is_own(const char *t, int tl) { return tl >= 2 && (unsigned char)t[0] == 0xC2 && (unsigned char)t[1] == 0xA7; }
+
+/* the i-th question of an own passage's title "§ q1 | q2 | ...", normalized; 0 when there is none */
+static int own_question(const mlg_know *k, uint32_t id, int i, char *out, int cap) {
+    const char *t = (const char *)k->strings + k->docs[id].off;
+    const int tl = (int)k->docs[id].title_len;
+    int a = 2;
+    for (int q = 0; q < i && a < tl; a++)
+        if (a + 2 < tl && t[a] == ' ' && t[a + 1] == '|' && t[a + 2] == ' ') q++, a += 2;
+    if (a >= tl) return 0;
+    int b = a;
+    while (b < tl && !(b + 2 < tl && t[b] == ' ' && t[b + 1] == '|' && t[b + 2] == ' ')) b++;
+    const int n = mlg_normalize(t + a, b - a, out, cap - 1);
+    out[n] = 0;
+    return n;
+}
+
+/* the MLG's own questions, word for word: "o que é a mlg" -> its answer, however large the index */
+static int index_asks(mlg_know *k) {
+    uint32_t n = 0;
+    for (uint32_t i = 0; i < k->n_docs; i++) {
+        const char *t = (const char *)k->strings + k->docs[i].off;
+        const int tl = (int)k->docs[i].title_len;
+        if (is_own(t, tl))
+            for (int c = 2; c + 2 < tl; c++) n += t[c] == ' ' && t[c + 1] == '|' && t[c + 2] == ' ';
+        n += is_own(t, tl);
+    }
+    uint32_t cap = 16;
+    while (cap < 2 * n) cap <<= 1;
+    k->asks = calloc(cap, sizeof(uint32_t));
+    if (!k->asks) return 0;
+    k->n_asks = cap;
+    char key[512], other[512];
+    for (uint32_t i = 0; i < k->n_docs; i++) {
+        if (!is_own((const char *)k->strings + k->docs[i].off, (int)k->docs[i].title_len)) continue;
+        for (int q = 0;; q++) {
+            const int len = own_question(k, i, q, key, sizeof key);
+            if (len <= 0) break;
+            uint32_t h = mlg_hash(key, len) & (cap - 1), dup = 0;
+            for (; k->asks[h]; h = (h + 1) & (cap - 1)) {
+                const uint32_t o = k->asks[h] - 1;
+                for (int j = 0; !dup; j++) {  /* the first passage asked this way wins */
+                    const int ol = own_question(k, o, j, other, sizeof other);
+                    if (ol <= 0) break;
+                    dup = ol == len && !memcmp(other, key, len);
+                }
+                if (dup) break;
+            }
+            if (!dup) k->asks[h] = i + 1;
+        }
+    }
+    return 1;
+}
+
 /* the first passage of every article (its lead), found by title in O(1) */
 static int index_titles(mlg_know *k) {
     uint32_t leads = 0;
@@ -75,7 +131,7 @@ static int index_titles(mlg_know *k) {
         if (i && same_title(k, i, i - 1)) continue;
         const char *t = (const char *)k->strings + k->docs[i].off;
         const int tl = (int)k->docs[i].title_len;
-        if (tl >= 2 && (unsigned char)t[0] == 0xC2 && (unsigned char)t[1] == 0xA7) continue;  /* the MLG's own "§" passages */
+        if (is_own(t, tl)) continue;  /* the MLG's own "§" passages are found by question (index_asks) */
         const int n = title_key(t, tl, key, sizeof key);
         if (n <= 0) continue;
         uint32_t h = mlg_hash(key, n) & (cap - 1);
@@ -111,7 +167,7 @@ static mlg_know *know_parse(mlg_know *k, char *err, int errlen) {
     k->strings = p + off[3];
     k->score = calloc(k->n_docs ? k->n_docs : 1, sizeof(float));
     k->touched = malloc(sizeof(uint32_t) * (k->n_docs ? k->n_docs : 1));
-    if (!k->score || !k->touched || !index_titles(k)) FAIL("out of memory");
+    if (!k->score || !k->touched || !index_titles(k) || !index_asks(k)) FAIL("out of memory");
     return k;
 #undef FAIL
 }
@@ -165,7 +221,7 @@ void mlg_know_close(mlg_know *k) {
     if (k->map && !k->owned) munmap(k->map, k->size);
 #endif
     if (k->owned) free(k->map);
-    free(k->score), free(k->touched), free(k->titles), free(k);
+    free(k->score), free(k->touched), free(k->titles), free(k->asks), free(k);
 }
 
 int mlg_know_count(const mlg_know *k) { return (int)k->n_docs; }
@@ -233,6 +289,20 @@ int mlg_know_lookup(const mlg_know *k, const char *key, int n) {
         const uint32_t o = k->titles[h] - 1;
         if (title_key((const char *)k->strings + k->docs[o].off, (int)k->docs[o].title_len, other, sizeof other) == n &&
             !memcmp(other, key, n)) return (int)o;
+    }
+    return -1;
+}
+
+int mlg_know_asked(const mlg_know *k, const char *key, int n) {
+    if (!k->n_asks || n <= 0) return -1;
+    char other[512];
+    for (uint32_t h = mlg_hash(key, n) & (k->n_asks - 1); k->asks[h]; h = (h + 1) & (k->n_asks - 1)) {
+        const uint32_t o = k->asks[h] - 1;
+        for (int j = 0;; j++) {
+            const int ol = own_question(k, o, j, other, sizeof other);
+            if (ol <= 0) break;
+            if (ol == n && !memcmp(other, key, n)) return (int)o;
+        }
     }
     return -1;
 }

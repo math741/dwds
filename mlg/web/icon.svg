@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><!-- the MLG core, as on the headset's launcher -->
+<rect width="108" height="108" rx="22" fill="#05070A"/>
+<circle cx="54" cy="54" r="24" fill="none" stroke="#19E3B1" stroke-width="2.5"/>
+<circle cx="54" cy="54" r="14" fill="none" stroke="#FF8A3D" stroke-width="2"/>
+<circle cx="54" cy="54" r="6" fill="#E8FFF8"/>
+<path d="M28 54h8M72 54h8M54 26v-4M54 82v4" stroke="#19E3B1" stroke-width="1.5"/>
+</svg>

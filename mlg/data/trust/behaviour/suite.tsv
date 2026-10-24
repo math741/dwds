@@ -1,7 +1,8 @@
 # The behaviour suite: what the MLG must do, run in order on one fresh memory.
 # gate	input	organs (any of)	must match (regex, case-insensitive)	must not match
 # "must": no Resident Core needed; every line passes, or nothing is published.
-# "quality": answers that go through a Resident Core; a share of them must pass.
+# "quality": open conversation, where only the Resident Core can answer (no passage
+# recites it): it must speak in real words, not loop, not give up; a share must pass.
 # "bare": a body with no organ from the lab yet (no router, no knowledge, no core): every line passes.
 # "wiki": the knowledge index with Wikipedia, answering alone (no core): every line passes.
 must	Oi	social	.	
@@ -29,14 +30,16 @@ must	o que você sabe fazer?	self	contas.*memória|lembrar
 must	Oque se pode fazer?	self	contas	
 must	V	self	\bV\b	
 must	o que você não sabe fazer?	knowledge	.	
-quality	o que é fotossíntese?	knowledge|core	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	me conta uma curiosidade	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	o que é a gravidade?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	quem foi Machado de Assis?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	você gosta de música?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	o que você acha de inteligência artificial?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	explica como funciona um vulcão	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
-quality	por que o céu é azul?	core|knowledge	\w{4,}	munic[ií]pio|comuna|densidade populacional|condado
+quality	me conta uma história curta	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	o que você faria num dia de chuva?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	se você fosse um animal, qual seria?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	me dá uma dica para estudar melhor	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	como foi o seu dia?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	o que você acha do mar?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	você tem medo de alguma coisa?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	me fala algo bonito	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	o que te deixa feliz?	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
+quality	inventa um nome para um robô	core	\w{4,}.*\s.*\w{4,}	^Não sei responder|^Não achei exatamente|^Pelo que eu sei|munic[ií]pio|comuna|densidade populacional|condado
 bare	Eai	social	.	
 bare	V	self	\bV\b	
 bare	Oque se pode fazer?	self	contas	Resident Core conversa

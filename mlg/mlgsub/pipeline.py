@@ -190,6 +190,12 @@ class Run:
             return
         self.save(mature_recipe=RECIPE)
         g, hours, inh = self.state.get("mature_genome"), self.state.get("mature_hours"), None
+        if g is not None and self.state.get("needs_more"):  # it failed the behaviour suite: keep growing it
+            more = max(0.05, self.left() - reserve_hours)
+            hours = (hours or 0) + more
+            self.save(mature_hours=hours, needs_more=False)
+            self.log(f"[maturation] o cérebro ainda não tinha passado na prova de comportamento: "
+                     f"continua de onde parou, +{more:.2f} h (total {hours:.2f} h)")
         if g is None:  # planned once; a resumed session keeps growing the same brain
             hours = max(0.05, self.left() - reserve_hours)
             g, inh = M.plan(self.furnace, hours, log=self.log)
@@ -223,6 +229,10 @@ class Run:
         self.behaviour = report
         if report["passed"] and self.lnk:
             self.lnk.seal(c["brain"])
+        if not report["passed"]:
+            self.save(matured=False, needs_more=True)
+            self.log("[behaviour] o cérebro ainda não fala bem o bastante para ir ao Quest. Rode o notebook de novo "
+                     "(Ambiente de execução → Executar tudo): ele continua amadurecendo de onde parou até passar.")
         self.sub.obj("Evaluation", f"eval:{c['brain']}:behaviour", origin="behaviour.run", epistemic="MEASURED",
                      must=f"{report['must_passed']}/{report['must']}",
                      quality=f"{report['quality_passed']}/{report['quality']}", passed=report["passed"])

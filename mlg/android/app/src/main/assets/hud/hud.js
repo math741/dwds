@@ -470,7 +470,7 @@ window.mlg = {
       case "heard_error": $("mic").classList.remove("live"); $("topnote").textContent = "voz: " + d.v; break;
       case "voice": {
         const [speak, listen] = d.v.split("");
-        if (listen !== "1") $("input").placeholder = "este Quest não tem reconhecimento de voz: use o teclado (a tecla de microfone dele dita)";
+        if (listen !== "1") $("input").placeholder = "este aparelho não tem reconhecimento de voz: use o teclado (a tecla de microfone dele dita)";
         if (speak !== "1") $("mute").textContent = "SEM VOZ";
         break;
       }
@@ -503,7 +503,7 @@ function send() {
 }
 $("send").addEventListener("click", send);
 $("input").addEventListener("keydown", (e) => e.key === "Enter" && send());
-$("mic").addEventListener("click", () => (bridge ? bridge.listen() : toast("voz só no Quest")));
+$("mic").addEventListener("click", () => (bridge ? bridge.listen() : toast("voz só com a MLG acordada (app ou página)")));
 let muted = false;
 $("mute").addEventListener("click", () => {
   muted = !muted;

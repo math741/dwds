@@ -45,7 +45,8 @@ def lib():
                 ("mlg_mind_finish", [P, ctypes.POINTER(Thought), S, ctypes.c_char_p, I], None),
                 ("mlg_mind_speak", [P, ctypes.POINTER(Thought), ctypes.c_char_p, I, P, P, ctypes.c_uint64], I),
                 ("mlg_mind_thought_json", [P, ctypes.POINTER(Thought), ctypes.c_char_p, I], I),
-                ("mlg_mind_memory_count", [P], I), ("mlg_set_threads", [I], None)]:
+                ("mlg_mind_memory_count", [P], I), ("mlg_set_threads", [I], None),
+                ("mlg_mind_spoke", [P], ctypes.c_char_p)]:
             f = getattr(L, name)
             f.argtypes, f.restype = args, res
         _lib = L
@@ -101,11 +102,11 @@ class Mind:
         return out.value.decode("utf-8", "replace")
 
     def ask(self, text, seed=7):
-        """The answer this body gives on its own: organ and reply."""
+        """The answer this body gives on its own: who gave it (organ) and the reply."""
         t = self._think(text)
         out = ctypes.create_string_buffer(4096)
         self.L.mlg_mind_speak(self.m, ctypes.byref(t), out, len(out), None, None, seed)
-        return t.organ.decode(), out.value.decode("utf-8", "replace")
+        return self.L.mlg_mind_spoke(self.m).decode(), out.value.decode("utf-8", "replace")
 
     def close(self):
         L = self.L

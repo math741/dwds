@@ -74,6 +74,8 @@ const char *mlg_know_text(const mlg_know *k, int id, int *len);
 const char *mlg_know_title(const mlg_know *k, int id, int *len);
 /* the lead passage of the article titled `key` (normalized, as mlg_normalize writes it), or -1 */
 int mlg_know_lookup(const mlg_know *k, const char *key, int n);
+/* the MLG's own passage that asks `key` (a normalized question) word for word, or -1 */
+int mlg_know_asked(const mlg_know *k, const char *key, int n);
 /* the first passage of the article passage `id` belongs to */
 int mlg_know_lead(const mlg_know *k, int id);
 /* BM25 idf of a normalized word, or -1 when the index does not hold it (never seen, or too common to keep) */
@@ -121,9 +123,12 @@ void mlg_mind_lab(mlg_mind *m, const char *status);
 void mlg_mind_clock(mlg_mind *m, long long unix_seconds, int tz_minutes);
 int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t);
 /* a Resident Core's raw output (this body's or the lab's) -> the answer, checked against the evidence */
-void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, char *out, int cap);
+void mlg_mind_finish(mlg_mind *m, const mlg_thought *t, const char *raw, char *out, int cap);
 /* the answer from this body alone; returns 0 when it had no core to ask */
 int mlg_mind_speak(mlg_mind *m, const mlg_thought *t, char *out, int cap, mlg_on_byte cb, void *user, uint64_t seed);
+/* who gave the last answer of speak or finish: "core", "knowledge" (the evidence, when the core
+ * failed it or there is none), "trust" (no one could), or the expert of a final thought */
+const char *mlg_mind_spoke(const mlg_mind *m);
 int mlg_mind_thought_json(const mlg_mind *m, const mlg_thought *t, char *out, int cap);
 int mlg_mind_memory_count(const mlg_mind *m);
 const char *mlg_mind_memory_text(const mlg_mind *m, int i);

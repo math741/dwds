@@ -1,0 +1,13 @@
+{
+  "name": "MLG ZERO-1T ΣΩ",
+  "short_name": "MLG",
+  "description": "A MLG em qualquer aparelho: a mesma mente do Quest, feita do zero, ligada ao laboratório.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05070A",
+  "theme_color": "#05070A",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

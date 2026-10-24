@@ -316,13 +316,14 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             val prompt = String(Native.thoughtPrompt(t))
             val online = labBrain != null && link?.connected == true
             if (online && labSealed) askLab(prompt, "say_chunk")?.let { (raw, info) ->
-                reply(String(Native.mindFinish(mind, t, raw.toByteArray())), "lab:$info")
+                val said = String(Native.mindFinish(mind, t, raw.toByteArray()))
+                reply(said, Native.mindSpoke(mind).let { if (it == "core") "lab:$info" else it })
                 return
             }
             emit("thinking", JSONObject().put("organ", "core"))
             val stream = Utf8Stream { emit("say_chunk", JSONObject().put("text", it)) }
             val out = String(Native.mindSpeak(mind, t, System.nanoTime(), Native.ByteSink { b -> stream.push(b); false }))
-            reply(out, if (core != 0L) "core" else if (th.optString("evidence").isNotEmpty()) "knowledge" else "trust")
+            reply(out, Native.mindSpoke(mind))
             // a brain still evolving does not answer, but you can watch it try
             if (online && !labSealed) drafts.execute {
                 runCatching {

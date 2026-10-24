@@ -52,7 +52,7 @@ jobs:
 
       - name: Build the router and the knowledge index, and put them through the behaviour suite
         working-directory: mlg
-        run: python -m mlgsub.organs "$RUNNER_TEMP/organs" --wiki-mb "$WIKI_MB"
+        run: python -m mlgsub.organs build "$RUNNER_TEMP/organs" --wiki-mb "$WIKI_MB"
 
       - name: Publish the release
         env:

@@ -243,6 +243,10 @@ JNIEXPORT jbyteArray JNICALL FN(mindFinish)(JNIEnv *env, jclass cls, jlong m, jl
     return bytes_out(env, out, (int)strlen(out));
 }
 
+JNIEXPORT jstring JNICALL FN(mindSpoke)(JNIEnv *env, jclass cls, jlong m) {
+    return (*env)->NewStringUTF(env, mlg_mind_spoke((mlg_mind *)(intptr_t)m));
+}
+
 JNIEXPORT jobjectArray JNICALL FN(mindMemory)(JNIEnv *env, jclass cls, jlong m) {
     mlg_mind *mind = (mlg_mind *)(intptr_t)m;
     const int n = mlg_mind_memory_count(mind);

@@ -41,6 +41,7 @@ struct mlg_mind {
     char body[2048];   /* key=value lines from the host */
     char lab[512];     /* the live link's state, as a sentence */
     long long now;     /* local time from the host */
+    char spoke[16];    /* who gave the last answer: "core", "knowledge" (evidence), "trust" (no one) */
     int tz_minutes;
     unsigned turn;
 };
@@ -174,6 +175,8 @@ void mlg_mind_lab(mlg_mind *m, const char *status) { copy(m->lab, sizeof m->lab,
 void mlg_mind_clock(mlg_mind *m, long long unix_seconds, int tz_minutes) { m->now = unix_seconds, m->tz_minutes = tz_minutes; }
 
 int mlg_mind_memory_count(const mlg_mind *m) { return m->n_facts; }
+
+const char *mlg_mind_spoke(const mlg_mind *m) { return m->spoke; }
 
 /* the memory as JSON lines (what the memory file holds), for hosts without files */
 int mlg_mind_memory_dump(const mlg_mind *m, char *out, int cap) {
@@ -417,6 +420,31 @@ static void quote(const char *text, char *out, int cap) {
         snprintf(out, cap, "%s", q);
     }
     trim(out);
+}
+
+static int first_person(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    char *w[64];
+    const int nw = words(n, w, 64);
+    static const char *ME[] = {"eu", "meu", "minha", "meus", "minhas", "mim", "comigo", NULL};
+    for (int i = 0; i < nw; i++)
+        for (const char **x = ME; *x; x++)
+            if (!strcmp(w[i], *x)) return 1;
+    return strstr(n, "me disse") || strstr(n, "te disse") || strstr(n, "te contei") || strstr(n, "me chamo");
+}
+
+/* a story, a poem, a joke, an opinion of its own: the Resident Core's to make, not a passage's to recite */
+static int creative(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    static const char *X[] = {"conta uma historia", "conte uma historia", "contar uma historia", "inventa", "invente",
+                              "cria um", "cria uma", "crie um", "crie uma", "escreve um", "escreva um", "escreve uma",
+                              "escreva uma", "faz um poema", "faca um poema", "poema", "piada", "me conta algo",
+                              "algo bonito", "sua cor favorita", "seu dia", "voce faria", "voce tem medo", "te deixa", NULL};
+    for (const char **x = X; *x; x++)
+        if (strstr(n, *x)) return 1;
+    return 0;
 }
 
 static int asks_curiosity(const char *text) {
@@ -731,7 +759,7 @@ static void body_report(const mlg_mind *m, int asks_heat, char *out, int cap) {
     else if (has_bat) ADD("Bateria em %s%%. ", bat);
     else if (has_temp) ADD("Estou a %s °C. ", temp);
     if (body_get(m, "bytes_per_s", bps, sizeof bps) && body_get(m, "threads", threads, sizeof threads))
-        ADD("Penso a %s bytes por segundo com %s threads, medido aqui. ", bps, threads);
+        ADD("Penso a %s bytes por segundo com %s %s, medido aqui. ", bps, threads, atoi(threads) == 1 ? "thread" : "threads");
     if (body_get(m, "thermal", thermal, sizeof thermal) && atoi(thermal) >= 3) ADD("Estou quente: vou pensar com menos threads. ");
     if (asks_heat) ADD("Quando a temperatura sobe, reduzo o nível de raciocínio e uso menos threads até o processador esfriar.");
 #undef ADD
@@ -1001,6 +1029,8 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
         copy(t->organ, sizeof t->organ, "social"), copy(t->reply, sizeof t->reply, s);
         return t->final = 1;
     }
+    /* recalling is about the person ("meu nome", "o que eu disse"), not about the MLG ("sua cor favorita") */
+    if (!strcmp(in, "recall") && !first_person(text)) copy(t->intent, sizeof t->intent, "chat");
     const int about_user = !strcmp(in, "remember") || !strcmp(in, "recall");
     if (!about_user && asks_ability(text)) {
         abilities(m, t->reply, sizeof t->reply);
@@ -1045,10 +1075,16 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
     }
     /* a question the MLG's own corpus answers, word for word */
     if (!about_user && strcmp(in, "time") && m->know) {
-        int ids[8];
-        float sc[8];
-        const int n = mlg_know_search(m->know, text, 8, ids, sc);
-        for (int i = 0; i < n; i++)
+        /* asked exactly as the corpus asks it, then as nearly as retrieval finds */
+        int ids[17];
+        float sc[17];
+        char nq[512];
+        norm(text, nq, sizeof nq);
+        char *tail = strstr(nq, " mlg");
+        if (tail && tail[4] == 0 && tail != nq) *tail = 0;  /* "o que você sabe, mlg" asks the same */
+        ids[0] = mlg_know_asked(m->know, nq, (int)strlen(nq)), sc[0] = 0.f;
+        const int n = 1 + mlg_know_search(m->know, text, 16, ids + 1, sc + 1);
+        for (int i = ids[0] < 0; i < n; i++)
             if (own_answer(m, text, ids[i], buf, sizeof buf)) {
                 int tl;
                 const char *title = mlg_know_title(m->know, ids[i], &tl);
@@ -1104,7 +1140,7 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
     }
     /* knowledge, chat, or arithmetic it could not do exactly: evidence first */
     char ctx[1400] = "";
-    if (m->know) {
+    if (m->know && !creative(text)) {
         /* searched by what it asks about: "quantos" and "tem" would find every "quantos ... tem" */
         char nq[512], query[512] = "";
         norm(text, nq, sizeof nq);
@@ -1234,12 +1270,39 @@ static int degenerate(const char *answer) {
     return 0;
 }
 
+/* A byte-level brain that has not learned words yet: runs of punctuation, or words
+ * that no passage the MLG knows has ever used ("iénos-sístolôntios,,,mõurcos"). */
+static int gibberish(const mlg_mind *m, const char *answer) {
+    int run = 1, punct = 0, chars = 0;
+    for (const char *p = answer; *p; p++) {
+        if (p > answer && *p == p[-1] && strchr(",.;:!?-_*'\"()", *p) && ++run >= 4) return 1;
+        if (p == answer || *p != p[-1]) run = 1;
+        chars++;
+        punct += strchr(",.;:!?-_*'\"()[]{}/\\", *p) != NULL;
+    }
+    if (chars > 20 && punct * 5 > chars) return 1;
+    if (!m->know) return 0;
+    char a[2048];
+    norm(answer, a, sizeof a);
+    char *w[300];
+    const int n = words(a, w, 300);
+    int long_words = 0, known = 0;
+    for (int i = 0; i < n; i++) {
+        const int l = (int)strlen(w[i]);
+        if (l < 4 || has_digit(w[i])) continue;
+        long_words++;
+        known += stopword(w[i]) || mlg_know_idf(m->know, w[i], l) >= 0.f;
+    }
+    /* the most common words are left out of the index (too common to search by), so a real
+     * sentence still loses a few; gibberish loses nearly all */
+    return long_words >= 3 && known * 2 < long_words;
+}
+
 /* A Resident Core's raw continuation -> the answer: its first line, without a
  * trailing half sentence. The evidence engine has the last word: an answer to
  * a question with evidence must rest on it, and a looping answer is not said
  * at all; the best sentences of the evidence are said instead. */
-void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, char *out, int cap) {
-    (void)m;
+void mlg_mind_finish(mlg_mind *m, const mlg_thought *t, const char *raw, char *out, int cap) {
     char s[4096], q[1024] = "";
     copy(s, sizeof s, raw);
     char *nl = strchr(s, '\n');
@@ -1259,9 +1322,10 @@ void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, c
         char *e = strstr(q, "\nM:");
         if (e) *e = 0;
     }
-    int ok = strlen(s) >= 2 && !degenerate(s);
+    int ok = strlen(s) >= 2 && !degenerate(s) && !gibberish(m, s);
     if (ok && t->evidence[0] && grounded(s, t->evidence, q) < 0.5) ok = 0;
-    if (ok) { copy(out, cap, s); return; }
+    if (ok) { copy(out, cap, s), copy(m->spoke, sizeof m->spoke, "core"); return; }
+    copy(m->spoke, sizeof m->spoke, t->evidence[0] ? "knowledge" : "trust");
     if (t->evidence[0]) {
         char best[700];
         extract(m, q, t->evidence, best, sizeof best);
@@ -1278,9 +1342,10 @@ void mlg_mind_finish(const mlg_mind *m, const mlg_thought *t, const char *raw, c
 
 /* The answer from this body: its core when it has one, the evidence otherwise. */
 int mlg_mind_speak(mlg_mind *m, const mlg_thought *t, char *out, int cap, mlg_on_byte cb, void *user, uint64_t seed) {
-    if (t->final) { copy(out, cap, t->reply); return 1; }
+    if (t->final) { copy(out, cap, t->reply), copy(m->spoke, sizeof m->spoke, t->organ); return 1; }
     if (!m->core) {
         if (t->evidence[0]) { mlg_mind_finish(m, t, "", out, cap); return 0; }
+        copy(m->spoke, sizeof m->spoke, "trust");
         /* what was asked, quoted back: an honest "not yet", never the same sentence twice in a row */
         const char *u = strstr(t->prompt, "U: ");
         char q[1024] = "", qq[96];

@@ -1,0 +1,94 @@
+# The MLG in any browser (computer, phone, tablet, the Quest's own browser):
+# the headset's engine and mind compiled to WebAssembly, the same HUD, base
+# organs for the web (router + Wikipedia), and the brain the notebook published
+# (mlg-brain) when there is one. Tested in Chromium, then put on GitHub Pages.
+# Once: Settings -> Pages -> Source: "GitHub Actions".
+name: MLG web
+
+on:
+  push:
+    paths:
+      - "mlg/web/**"
+      - "mlg/engine/**"
+      - "mlg/android/app/src/main/assets/hud/**"
+      - "mlg/mlgsub/know.py"
+      - "mlg/mlgsub/router.py"
+      - "mlg/mlgsub/organs.py"
+      - "mlg/mlgsub/behaviour.py"
+      - "mlg/data/**"
+      - "mlg/tests/test_web.js"
+      - ".github/workflows/mlg-web.yml"
+  schedule:
+    - cron: "41 */6 * * *"  # takes in a brain the notebook published since
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: mlg-web
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      WIKI_MB: "128"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python packages and zig
+        run: pip install -q ziglang numpy datasets torch --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+
+      - name: Wikipedia, kept between runs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mlg
+          key: wiki-pt-20231101-${{ env.WIKI_MB }}
+
+      - name: The engine in WebAssembly, the HUD, the page
+        run: sh mlg/web/build.sh "$RUNNER_TEMP/site"
+
+      - name: Base organs for the web, through the behaviour suite
+        working-directory: mlg
+        run: python -m mlgsub.organs build "$RUNNER_TEMP/organs" --wiki-mb "$WIKI_MB"
+
+      - name: The brain the notebook published, if any
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download mlg-brain -p core.mlgb -p manifest.json -D "$RUNNER_TEMP/brain" --repo "$GITHUB_REPOSITORY" || echo "no published brain yet"
+
+      - name: Organs in parts for the page
+        working-directory: mlg
+        run: python -m mlgsub.organs web "$RUNNER_TEMP/organs" "$RUNNER_TEMP/site/organs" --brain "$RUNNER_TEMP/brain"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: The page wakes and answers in Chromium
+        run: |
+          npm i --no-save --silent playwright@1.48.2
+          npx playwright install --with-deps chromium > /dev/null
+          node mlg/tests/test_web.js "$RUNNER_TEMP/site"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ runner.temp }}/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

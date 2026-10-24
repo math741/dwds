@@ -55,5 +55,7 @@ object Native {
     @JvmStatic external fun mindSpeak(m: Long, t: Long, seed: Long, sink: ByteSink?): ByteArray
     /** a Resident Core's raw output (the lab's) checked against the evidence */
     @JvmStatic external fun mindFinish(m: Long, t: Long, raw: ByteArray): ByteArray
+    /** who gave the last answer: "core", "knowledge", "trust", or a final thought's expert */
+    @JvmStatic external fun mindSpoke(m: Long): String
     @JvmStatic external fun mindMemory(m: Long): Array<String>
 }

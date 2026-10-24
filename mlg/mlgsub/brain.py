@@ -550,6 +550,7 @@ def train(g, lab, corpus, seconds, seed=0, init_state=None, lr_scale=1.0, resume
         steps, before = resume["steps"], resume["elapsed"]
     peak = g["lr"] * lr_scale
     warm = 50 if init_state is None and resume is None else 10
+    steps0 = steps  # every session warms up again: a maturation extended past its end restarts its cosine
     meter = EnergyMeter(dev)
     loss_v, diverged = float("nan"), False
 
@@ -573,7 +574,7 @@ def train(g, lab, corpus, seconds, seed=0, init_state=None, lr_scale=1.0, resume
                 if checkpoint and now - last_ck >= checkpoint_every:
                     checkpoint(state(before + now - t0))
                     last_ck = now
-                lr = peak * min(1.0, (steps + 1) / warm) * 0.5 * (1 + math.cos(math.pi * frac))
+                lr = peak * min(1.0, (steps - steps0 + 1) / warm) * 0.5 * (1 + math.cos(math.pi * frac))
                 for pg in opt.param_groups:
                     pg["lr"] = lr
                 x, y = corpus.batch(g["batch"], g["ctx"])
