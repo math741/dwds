@@ -23,6 +23,10 @@ from .evolve import evolve as evolve_brains, Furnace
 from .substrate import connect
 
 ROOT = os.path.join(os.path.dirname(__file__), "..", "data")
+# The training recipe (data mix, filters). A brain matured under an older one
+# is matured again, starting from the champion, when the notebook runs.
+RECIPE = 2
+STUB_BYTES = 1500  # Wikipedia articles shorter than this are stubs ("X é um município...")
 CLI = os.path.join(os.path.dirname(__file__), "..", "engine", "mlg_cli")
 
 
@@ -122,11 +126,17 @@ class Run:
             try:
                 tsv = self.wikipedia(wiki_mb)
                 self.wiki_txt = os.path.join(self.scratch, "wiki.txt")
+                kept = stubs = 0
                 with open(tsv, encoding="utf-8") as src, open(self.wiki_txt, "w", encoding="utf-8") as dst:
                     for line in src:
                         title, _, text = line.rstrip("\n").partition("\t")
+                        if len(text) < STUB_BYTES:
+                            stubs += 1
+                            continue
+                        kept += 1
                         dst.write(f"{title}\n\n" + "\n".join(text.split("  ")) + "\n\n")
-                wiki = list(know.wiki_passages(tsv))
+                self.log(f"[feeding] {kept:,} Wikipedia articles kept, {stubs:,} stubs left out")
+                wiki = list(know.wiki_passages(tsv, min_article=STUB_BYTES))
             except Exception as e:
                 self.log(f"[feeding] Wikipedia indisponível ({type(e).__name__}: {e}); só o corpus da MLG")
         # the index the Resident Core learns from leaves the sealed lines out; the one the
@@ -193,9 +203,14 @@ class Run:
             self.save(champion=c["checkpoint"], champion_brain=c["brain"], **kw)
 
     def mature(self, reserve_hours=0.3):
+        if self.state.get("mature_recipe", 1) != RECIPE and (self.state.get("matured") or self.state.get("mature_genome")):
+            self.log("[maturation] the training recipe changed since the last maturation: "
+                     "growing the champion again with the new one")
+            self.save(matured=False, mature_genome=None, mature_hours=None, mature_recipe=RECIPE)
         if self.state.get("matured"):
             self.log("[resume] maturation already finished in an earlier session")
             return
+        self.save(mature_recipe=RECIPE)
         g, hours, inh = self.state.get("mature_genome"), self.state.get("mature_hours"), None
         if g is None:  # planned once; a resumed session keeps growing the same brain
             hours = max(0.05, self.left() - reserve_hours)
@@ -207,7 +222,7 @@ class Run:
                 c = self.furnace.champion
                 inh = (weights, mode, c["brain"], c["genome"])
         M.mature(self.furnace, g, hours, self.path("ckpt"), inheritance=inh,
-                 checkpoint_every=120 if self.quick else 600, log=self.log)
+                 checkpoint_every=120 if self.quick else 600, log=self.log, tag=f"r{RECIPE}")
         self._keep_champion(matured=True)
         self.log("\n".join(explain.why_champion(self.sub, self.quest.id)))
 

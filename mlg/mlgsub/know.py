@@ -72,14 +72,15 @@ def chunks(text, size=PASSAGE):
         yield cur
 
 
-def wiki_passages(path, limit_bytes=None):
+def wiki_passages(path, limit_bytes=None, min_article=0):
     """Articles as written by the notebook: one per line, title<TAB>text,
-    paragraphs separated by two spaces."""
+    paragraphs separated by two spaces. Articles shorter than `min_article`
+    bytes (stubs) are skipped."""
     seen = 0
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             title, _, text = line.rstrip("\n").partition("\t")
-            if not text:
+            if not text or len(text) < min_article:
                 continue
             for para in text.split("  "):
                 for p in chunks(para):

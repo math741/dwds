@@ -82,11 +82,12 @@ def plan(furnace, hours, log=print):
     return g, inh
 
 
-def mature(furnace, g, hours, ckpt_dir, inheritance=None, checkpoint_every=600, log=print):
+def mature(furnace, g, hours, ckpt_dir, inheritance=None, checkpoint_every=600, log=print, tag=""):
     """Train g for `hours` (resuming from ckpt_dir), then put it through the
-    furnace's ATTACK and COMPARE like any other brain. Returns the furnace row."""
+    furnace's ATTACK and COMPARE like any other brain. Returns the furnace row.
+    `tag` names the run, so a new maturation never resumes an old one's checkpoint."""
     os.makedirs(ckpt_dir, exist_ok=True)
-    path = os.path.join(ckpt_dir, f"mature-{B.genome_id(g)[7:19]}.pt")
+    path = os.path.join(ckpt_dir, f"mature-{B.genome_id(g)[7:19]}{'-' + tag if tag else ''}.pt")
     resume = None
     if os.path.exists(path):
         resume = torch.load(path, map_location="cpu", weights_only=True)
