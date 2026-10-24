@@ -39,6 +39,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     private val worker = Executors.newSingleThreadExecutor()  // one thought at a time
     private val drafts = Executors.newSingleThreadExecutor()  // the lab brain's attempts, beside the answers
     private val clock = Executors.newSingleThreadScheduledExecutor()  // new organs, a core arriving over the link
+    private val fetcher = Executors.newSingleThreadExecutor()  // organ downloads, never in the way of a thought
     @Volatile private var transfer: Transfer? = null
     private val mind = Native.mindNew(File(dir, "memory.jsonl").path)
     private var core = 0L
@@ -78,7 +79,6 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         senseBody()
         connect()
         emit("phase", JSONObject().put("v", "organs"))
-        runCatching { if (brains.update()) note("cérebros novos instalados") }
         loadOrgans()
         Native.mindOrgans(mind, router, know, core)
         emit("phase", JSONObject().put("v", "ready"))
@@ -86,7 +86,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
         val man = (brains.core()?.second ?: brains.manifest())?.optJSONObject("behaviour")
         if (man != null) note("Prova de comportamento do laboratório: obrigatórias ${man.optInt("must_passed")}/${man.optInt("must")}" +
             (if (man.optInt("quality") > 0) ", qualidade ${man.optInt("quality_passed")}/${man.optInt("quality")}." else "."))
-        clock.scheduleWithFixedDelay({ worker.execute { refresh() } }, 20, 20, TimeUnit.MINUTES)
+        // awake with what is here; new organs come in the background and are swapped in whole
+        clock.scheduleWithFixedDelay({ fetcher.execute { refresh() } }, 0, 20, TimeUnit.MINUTES)
         clock.scheduleWithFixedDelay({ watchTransfer() }, 2, 2, TimeUnit.SECONDS)
         reply(if (core != 0L) "Estou acordada. Medi meu corpo e meus órgãos passaram no selo."
               else "Estou acordada, mas meu Resident Core ainda não chegou do laboratório. Já sei calcular, lembrar, " +
@@ -212,7 +213,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
                 if (whole) arrived(t)
             }
         }
-        if (kind == "train" && data.has("published")) worker.execute { refresh() }
+        if (kind == "train" && data.has("published")) fetcher.execute { refresh() }
     }
 
     // ---- organs arriving while awake --------------------------------------------------
@@ -250,7 +251,8 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
     }
 
     private fun refresh() {
-        if (runCatching { brains.update() }.getOrDefault(false)) reloadOrgans()
+        if (runCatching { brains.update() }.onFailure { note("não consegui baixar órgãos novos: ${it.message}") }
+                .getOrDefault(false)) worker.execute { reloadOrgans() }
     }
 
     private fun reloadOrgans() {
@@ -366,6 +368,7 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
 
     fun close() {
         clock.shutdownNow()
+        fetcher.shutdownNow()
         transfer?.close()
         drafts.shutdownNow()
         link?.stop()

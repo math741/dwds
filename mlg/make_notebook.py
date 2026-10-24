@@ -8,22 +8,26 @@ md, code = nbf.v4.new_markdown_cell, nbf.v4.new_code_cell
 cells = [
     md("""# MLG ZERO-1T ΣΩ · o laboratório
 
-**Uma MLG, dois corpos.** Este notebook é o laboratório: aqui a MLG acorda numa GPU sem saber
+**Uma MLG, vários corpos.** Este notebook é o laboratório: aqui a MLG acorda numa GPU sem saber
 o que ela é, mede o próprio corpo, evolui cérebros do zero e amadurece o campeão por horas.
-O **Quest 3S** é o corpo de campo: o app roda a MLG inteira offline, e enquanto este notebook
-estiver rodando ele vê a evolução **ao vivo** e usa o cérebro grande daqui.
+Os corpos de campo (o app no **Quest 3S** ou num Android, e a página
+[math741.github.io/dwds](https://math741.github.io/dwds/) em qualquer navegador) rodam a MLG
+inteira offline e, enquanto este notebook roda, veem a evolução **ao vivo**.
 
 ### Como usar
 1. **Ambiente de execução → Alterar o tipo → A100** (ou outra GPU; a MLG mede o que receber).
 2. *(uma vez só, opcional)* Na chave 🔑 à esquerda (**Secrets**), crie:
-   - `MLG_LINK` = o código que o app mostra em **LIGAÇÃO** → toda execução acha seu Quest sozinha;
-   - `GITHUB_TOKEN` = um token do GitHub com permissão de escrita em `math741/dwds` → o cérebro
-     novo chega no Quest sozinho. Sem ele, os arquivos ficam no seu Drive em `MLG/quest`.
+   - `MLG_LINK` = o código que o app mostra em **LIGAÇÃO** → toda execução acha seu Quest sozinha,
+     e o cérebro aprovado vai para ele **pelo link criptografado**, sem precisar de token;
+   - `GITHUB_TOKEN` *(opcional)* = um token com escrita em `math741/dwds` → o cérebro também vai
+     para o release `mlg-brain`, de onde todos os corpos (e a página web) pegam.
 3. **Ambiente de execução → Executar tudo.** O único clique depois disso é o login do Google
    (para guardar tudo no Drive). Se o Colab cair, rode tudo de novo: ela continua de onde parou.
 
 Nada aqui usa modelo pré-treinado de ninguém: todo cérebro nasce do zero, e só é promovido
-quando passa nos portões selados (o Q root e o portão de diálogo)."""),
+quando passa nos portões selados (o Q root e o portão de diálogo). Antes de ir para um corpo, o
+cérebro ainda passa na **prova de comportamento**: conversa aberta que só ele pode responder, em
+palavras de verdade. Se não passar, rode tudo de novo: ele continua amadurecendo de onde parou."""),
     code(f"""#@title 1 · Preparar o laboratório
 HOURS = None        # None: a MLG decide pelo corpo (A100: 3 h). Ou um número de horas.
 WIKI_MB = None      # None: decide pelo corpo (A100: 1024 MiB). 0 = só o corpus da MLG.
@@ -91,17 +95,19 @@ durante o treino: o cérebro do laboratório responde entre um passo e outro."""
 run.evolve(population=POP, generations=GENS, seconds=SECS)"""),
     code("""#@title 6 · Amadurecer (retoma sozinho se o Colab cair)
 run.mature()"""),
-    md("""## IV · Mandar para o Quest
-O campeão vai para o formato do motor do Quest (pesos q8), e o próprio motor em C mede o Q root
-de novo: o app recusa um cérebro que não reproduza essa medida."""),
-    code("""#@title 7 · Exportar e publicar
+    md("""## IV · Mandar para os corpos
+O campeão vai para o formato do motor dos corpos (pesos q8), e o próprio motor em C mede o Q root
+de novo: um corpo recusa um cérebro que não reproduza essa medida. Depois, a **prova de
+comportamento**, com a mente inteira como ela roda no Quest. Aprovado, ele é oferecido ao Quest
+pelo link (deixe esta sessão aberta até o app dizer que recebeu) e, com `GITHUB_TOKEN`, publicado."""),
+    code("""#@title 7 · Exportar, provar e entregar
 run.export()
 run.publish(secret("GITHUB_TOKEN"), REPO)"""),
     code("""#@title 8 · Conversar aqui (opcional)
 for q in ["o que é a fotossíntese?", "quem foi Santos Dumont?", "o que você é?"]:
     print("você:", q)
     print("MLG:", run.ask(q), "\\n")"""),
-    code("""#@title 9 · Ficar à disposição do Quest
+    code("""#@title 9 · Ficar à disposição do Quest (e terminar de entregar o cérebro pelo link)
 run.serve(SERVE_HOURS)"""),
 ]
 
