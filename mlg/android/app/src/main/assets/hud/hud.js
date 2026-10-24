@@ -374,17 +374,22 @@ function renderOrgans() {
   $("organs").innerHTML = kv(rows);
 }
 const lab = { state: "offline", broker: "", champion: "", train: null };
+// "~1h52", "~7 min": how long the lab's training has left
+const eta = (sec) => { const m = Math.round(sec / 60), h = Math.floor(m / 60); return h ? `~${h}h${String(m % 60).padStart(2, "0")}` : `~${m} min`; };
 function renderLab() {
   const t = lab.train || {};
+  const maturing = t.generation === -1;
   $("lab").innerHTML = kv([
     ["ligação", `<span class="dot ${lab.state === "online" ? "on" : ""}"></span>${lab.state === "online" ? "online" : "offline"}`],
     ["broker", lab.broker || "—"],
     ["campeão", lab.champion ? lab.champion.replace("brain:", "").slice(0, 12) : "—"],
-    ["treinando", t.shape ? `${t.shape} · g${t.generation}` : "—"],
+    ["treinando", t.shape ? `${t.shape} · ${maturing ? "amadurecendo" : "g" + t.generation}` : "—"],
     ["passo", t.steps ? `${t.steps} · ${t.loss_bpb ? t.loss_bpb.toFixed(3) + " bpb" : ""}` : "—"],
+    ["progresso", t.steps ? `${((t.frac || 0) * 100).toFixed(0)}%${t.eta_s ? " · faltam " + eta(t.eta_s) : ""}` : "—"],
   ]);
   $("labmeter").style.width = ((t.frac || 0) * 100).toFixed(1) + "%";
-  $("mindstate").textContent = lab.state === "online" ? (t.shape ? "evoluindo agora" : "ligada ao laboratório") : "esperando o laboratório";
+  $("mindstate").textContent = lab.state !== "online" ? "esperando o laboratório" : !t.shape ? "ligada ao laboratório"
+    : maturing ? `amadurecendo ${((t.frac || 0) * 100).toFixed(0)}%${t.eta_s ? " · faltam " + eta(t.eta_s) : ""}` : "evoluindo agora";
 }
 function renderTrust() {
   if (!bridge) { $("trust").innerHTML = kv([["cadeia", "demo"]]); return; }

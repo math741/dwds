@@ -82,6 +82,11 @@ def plan(furnace, hours, log=print):
     return g, inh
 
 
+def eta(seconds):
+    h, m = divmod(int(seconds) // 60, 60)
+    return f"~{h}h{m:02d}" if h else f"~{m} min"
+
+
 def mature(furnace, g, hours, ckpt_dir, inheritance=None, checkpoint_every=600, log=print, tag=""):
     """Train g for `hours` (resuming from ckpt_dir), then put it through the
     furnace's ATTACK and COMPARE like any other brain. Returns the furnace row.
@@ -101,11 +106,37 @@ def mature(furnace, g, hours, ckpt_dir, inheritance=None, checkpoint_every=600, 
         log(f"[maturation] checkpoint at step {state['steps']}, {state['elapsed'] / 3600:.2f} h")
 
     t = time.time()
+    gid, outer = B.genome_id(g), furnace.on_step
+    seen = {"log": t, "eval": t}
+
+    def on_step(model, steps, frac, loss):
+        """Hours of training should not look like a frozen cell: the notebook says how far it is
+        and how long is left, and every checkpoint the living mind gets a real measurement."""
+        if outer:
+            outer(model, steps, frac, loss)
+        now = time.time()
+        if now - seen["log"] >= 120:
+            seen["log"] = now
+            log(f"[maturation] {frac:.0%} · passo {steps} · faltam {eta(max(0.0, 1 - frac) * hours * 3600)}"
+                + (f" · treino {loss / math.log(2):.3f} bits/byte" if loss is not None else ""))
+        if now - seen["eval"] >= checkpoint_every:
+            seen["eval"] = now
+            bpb = B.bits_per_byte(model, g, furnace.corpus.dev, furnace.lab.device)
+            eid = f"eval:{gid}:dev@{steps}"
+            furnace.sub.obj("Evaluation", eid, origin="maturation", epistemic="MEASURED", bits_per_byte=bpb,
+                            steps=steps, hours=round(frac * hours, 3))
+            furnace.sub.link(gid, "EVALUATED_BY", eid)
+            log(f"[maturation] medido: {bpb:.3f} bits/byte na validação, passo {steps}")
+
     furnace.seconds_override = hours * 3600
-    row = furnace.run(g, generation=-1, parents=(furnace.champion["genome"],) if furnace.champion else (),
-                      mutated=("maturation",), inheritance=inheritance,
-                      train_kw=dict(resume=resume, checkpoint=save, checkpoint_every=checkpoint_every))
-    furnace.seconds_override = None
+    furnace.on_step = on_step
+    try:
+        row = furnace.run(g, generation=-1, parents=(furnace.champion["genome"],) if furnace.champion else (),
+                          mutated=("maturation",), inheritance=inheritance,
+                          train_kw=dict(resume=resume, checkpoint=save, checkpoint_every=checkpoint_every))
+    finally:
+        furnace.seconds_override = None
+        furnace.on_step = outer
     log(f"[maturation] done in {(time.time() - t) / 3600:.2f} h this session: {row['status']}"
         + (f", dev {row['dev_bpb']:.3f} bpb" if "dev_bpb" in row else ""))
     return row

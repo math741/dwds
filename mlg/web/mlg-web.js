@@ -452,12 +452,16 @@
     else if (transfer.stalled(6000)) transfer.ask();
   }, 2000);
 
+  const eta = (sec) => { const m = Math.round(sec / 60); return m >= 60 ? `~${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}` : `~${m} min`; };
   function labStatus() {
     const t = labTrain;
     if (!link || !link.connected) return "Estou sem ligação com o laboratório agora. Quando o Colab rodar, eu vejo a evolução ao vivo.";
     if (!t && !labBrain) return "Estou ligada ao laboratório e esperando o Colab acordar. Abri a mente viva para você ver.";
     return "O laboratório está ligado. " + (labBrain ? `O campeão é ${labBrain.split(":").pop().slice(0, 12)}. ` : "") +
-      (t && t.shape ? `Agora treinando ${t.shape}, passo ${t.steps}.` : "");
+      (t && t.shape ? (t.generation === -1
+        ? `Agora amadurecendo ${t.shape}: ${Math.round((t.frac || 0) * 100)}% feito, passo ${t.steps}` +
+          (t.eta_s ? `, faltam ${eta(t.eta_s)}.` : ".")
+        : `Agora evoluindo ${t.shape}, passo ${t.steps}.`) : "");
   }
 
   /** The lab brain's raw continuation and how much training it carries, streamed to the HUD as `chunks`. */

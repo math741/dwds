@@ -276,8 +276,19 @@ class Mind(private val ctx: Context, private val emit: (String, JSONObject) -> U
             link?.connected != true -> "Estou sem ligação com o laboratório agora. Quando o Colab rodar, eu vejo a evolução ao vivo."
             t == null && labBrain == null -> "Estou ligada ao laboratório e esperando o Colab acordar. Abri a mente viva para você ver."
             else -> "O laboratório está ligado. " + (labBrain?.let { "O campeão é ${it.substringAfter(':').take(12)}. " } ?: "") +
-                (t?.optString("shape")?.takeIf { it.isNotEmpty() }?.let { "Agora treinando $it, passo ${t.optInt("steps")}." } ?: "")
+                (t?.optString("shape")?.takeIf { it.isNotEmpty() }?.let { shape ->
+                    if (t.optInt("generation") == -1)
+                        "Agora amadurecendo $shape: ${(t.optDouble("frac") * 100).toInt()}% feito, passo ${t.optInt("steps")}" +
+                            (if (t.has("eta_s")) ", faltam ${eta(t.optLong("eta_s"))}." else ".")
+                    else "Agora evoluindo $shape, passo ${t.optInt("steps")}."
+                } ?: "")
         }
+    }
+
+    /** "~1h52", "~7 min" */
+    private fun eta(seconds: Long): String {
+        val m = (seconds + 30) / 60
+        return if (m >= 60) "~%dh%02d".format(m / 60, m % 60) else "~$m min"
     }
 
     private fun bodyFacts() = buildString {

@@ -73,6 +73,7 @@ class Link:
         self.pulls = queue.Queue()
         self.headsets = 0
         self._last_train = 0.0
+        self._since = (None, time.time(), 0.0)  # (training, when, fraction) the time-left estimate starts from
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="mlg-lab-" + os.urandom(4).hex())
         self.client.on_connect = lambda c, u, f, rc, p=None: c.subscribe(
             [(f"{self.base}/{k}", 0) for k in ("ask", "hello", "body", "pull")])
@@ -197,10 +198,15 @@ class Link:
         During maturation the brain still learning answers (it is the best one)."""
         now = time.time()
         self.frac = frac
+        key = (self.training or {}).get("genome")
+        if self._since[0] != key or frac < self._since[2]:
+            self._since = (key, now, frac)  # how fast this brain's training moves, for "faltam ~1h52"
         if loss is not None and now - self._last_train > 2:
             self._last_train = now
+            _, t0, f0 = self._since
+            eta = (1 - frac) * (now - t0) / (frac - f0) if frac > f0 and now - t0 > 20 else None
             self.publish("train", {"steps": steps, "frac": round(frac, 4), "loss_bpb": loss / 0.6931471805599453,
-                                   **(self.training or {})})
+                                   **({"eta_s": round(eta)} if eta is not None else {}), **(self.training or {})})
         while not self.pending.empty():
             self.answer(self.pending.get(), model if self.training and self.training["generation"] == -1 else None)
 

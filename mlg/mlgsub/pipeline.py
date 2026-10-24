@@ -9,6 +9,7 @@ from its last checkpoint, and the export always reflects the latest champion.
     run.link(); run.awaken(); run.feed(wiki_mb=1024); run.train_router()
     run.load_corpus(); run.evolve(); run.mature(); run.export(); run.publish(token)
 """
+import glob
 import json
 import os
 import shutil
@@ -182,9 +183,12 @@ class Run:
 
     def mature(self, reserve_hours=0.3):
         if self.state.get("mature_recipe", 1) != RECIPE and (self.state.get("matured") or self.state.get("mature_genome")):
-            self.log("[maturation] the training recipe changed since the last maturation: "
-                     "growing the champion again with the new one")
-            self.save(matured=False, mature_genome=None, mature_hours=None, mature_recipe=RECIPE)
+            # hours of GPU are not thrown away: the brain matured under the old recipe keeps growing
+            ckpts = sorted(glob.glob(self.path("ckpt", "mature-*.pt")), key=os.path.getmtime)
+            self.log("[maturation] the training recipe changed since the last maturation: growing again with the "
+                     "new one" + (", from the weights already matured" if ckpts else ", from the champion"))
+            self.save(matured=False, mature_genome=None, mature_hours=None, mature_recipe=RECIPE,
+                      mature_parent=ckpts[-1] if ckpts else None)
         if self.state.get("matured"):
             self.log("[resume] maturation already finished in an earlier session")
             return
@@ -198,8 +202,19 @@ class Run:
                      f"continua de onde parou, +{more:.2f} h (total {hours:.2f} h)")
         if g is None:  # planned once; a resumed session keeps growing the same brain
             hours = max(0.05, self.left() - reserve_hours)
-            g, inh = M.plan(self.furnace, hours, log=self.log)
-            self.save(mature_genome=g, mature_hours=hours)
+            parent = self.state.get("mature_parent")
+            if parent and os.path.exists(parent):
+                st = torch.load(parent, map_location="cpu", weights_only=True)
+                g = st["genome"]
+                weights, mode = B.inherit(g, g, st["model"])
+                pid = f"brain:matured:{os.path.basename(parent)[7:-3]}"
+                self.sub.obj("Brain", pid, origin="maturation", epistemic="MEASURED", steps=st["steps"],
+                             hours=round(st["elapsed"] / 3600, 2))
+                inh = (weights, mode, pid, B.genome_id(g))
+                self.log(f"[maturation] herdando {st['elapsed'] / 3600:.1f} h de amadurecimento ({st['steps']} passos)")
+            else:
+                g, inh = M.plan(self.furnace, hours, log=self.log)
+            self.save(mature_genome=g, mature_hours=hours, mature_parent=None)
         elif self.furnace.champion and self.furnace.champion["genome"] in self.furnace.states:
             weights, mode = B.inherit(g, self.furnace.champion["g"], self.furnace.states[self.furnace.champion["genome"]][1])
             if weights is not None:

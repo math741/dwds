@@ -7,7 +7,7 @@ the decisions, evaluations, traits and measurements stored in FalkorDB.
 
 def champion(sub, body_id):
     rows = sub.q(
-        "MATCH (d:Decision {verdict:'COMMIT', body:$b})-[:CHOSE]->(br:Brain) "
+        "MATCH (d:Decision {body:$b})-[:CHOSE]->(br:Brain) WHERE d.verdict IN ['COMMIT', 'RESTORE'] "
         "RETURN d.id, br.id, d.reason ORDER BY d.id DESC LIMIT 1", b=body_id)
     return rows[0] if rows else None
 
@@ -18,12 +18,12 @@ def why_champion(sub, body_id):
         return [f"No brain has been committed for {body_id}."]
     did, bid, reason = c
     out = [f"WHY {bid} lives in {body_id}?", f"  decision {did}: {reason}"]
-    g = sub.q(
-        "MATCH (g:Genome)-[:EXPRESSES]->(:Brain {id:$b}) RETURN g.id, g.generation, g.d_model, "
-        "g.n_layers, g.n_heads, g.n_experts, g.top_k, g.ffn_mult, g.ctx, g.dtype, g.pred_params", b=bid)[0]
-    out.append(f"  genome {g[0]} (generation {g[1]}): d_model {g[2]}, {g[3]} layers, {g[4]} heads, "
-               f"{g[5]} experts top-{g[6]}, ffn x{g[7]}, context {g[8]}, {g[9]}, "
-               f"{g[10] / 1e6:.2f}M params")
+    for g in sub.q(
+            "MATCH (g:Genome)-[:EXPRESSES]->(:Brain {id:$b}) RETURN g.id, g.generation, g.d_model, "
+            "g.n_layers, g.n_heads, g.n_experts, g.top_k, g.ffn_mult, g.ctx, g.dtype, g.pred_params", b=bid)[:1]:
+        out.append(f"  genome {g[0]} (generation {g[1]}): d_model {g[2]}, {g[3]} layers, {g[4]} heads, "
+                   f"{g[5]} experts top-{g[6]}, ffn x{g[7]}, context {g[8]}, {g[9]}"
+                   + (f", {g[10] / 1e6:.2f}M params" if g[10] else " (restored from an earlier session)"))
     for suite, bpb, q, eid in sub.q(
             "MATCH (:Decision {id:$d})-[:JUSTIFIED_BY]->(e:Evaluation)-[:ON_SUITE]->(s:Suite) "
             "MATCH (br:Brain)-[:EVALUATED_BY]->(e) "
