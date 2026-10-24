@@ -109,6 +109,7 @@ typedef struct {
     char evidence_title[256];
     char evidence[1536];    /* the passage the answer rests on (its start, or the lead of the article asked about) */
     float evidence_score;
+    int loose;              /* the evidence mentions what was asked but does not say what it is */
 } mlg_thought;
 
 /* memory_path: where remembered facts live (JSON lines); may be NULL */

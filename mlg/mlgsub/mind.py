@@ -21,7 +21,8 @@ class Thought(ctypes.Structure):
     _fields_ = [("intent", ctypes.c_char * 16), ("probs", ctypes.c_float * 16), ("n_intents", ctypes.c_int),
                 ("organ", ctypes.c_char * 16), ("final", ctypes.c_int), ("reply", ctypes.c_char * 2048),
                 ("prompt", ctypes.c_char * 4096), ("evidence_title", ctypes.c_char * 256),
-                ("evidence", ctypes.c_char * 1536), ("evidence_score", ctypes.c_float)]
+                ("evidence", ctypes.c_char * 1536), ("evidence_score", ctypes.c_float),
+                ("loose", ctypes.c_int)]
 
 
 _lib = None

@@ -441,7 +441,9 @@ static int creative(const char *text) {
     static const char *X[] = {"conta uma historia", "conte uma historia", "contar uma historia", "inventa", "invente",
                               "cria um", "cria uma", "crie um", "crie uma", "escreve um", "escreva um", "escreve uma",
                               "escreva uma", "faz um poema", "faca um poema", "poema", "piada", "me conta algo",
-                              "algo bonito", "sua cor favorita", "seu dia", "voce faria", "voce tem medo", "te deixa", NULL};
+                              "algo bonito", "sua cor favorita", "seu dia", "voce faria", "voce tem medo", "te deixa",
+                              "o que voce acha", "oque voce acha", "voce gosta", "o que voce pensa", "sua opiniao",
+                              "voce prefere", NULL};
     for (const char **x = X; *x; x++)
         if (strstr(n, *x)) return 1;
     return 0;
@@ -946,12 +948,20 @@ static int subject(const mlg_mind *m, const char *text, const int *hits, int n_h
             if (weight(m, w[i], 0) == 0.f || weight(m, w[i + len - 1], 0) == 0.f) continue;
             double wt = 0.0;
             for (int j = i; j < i + len; j++) wt += weight(m, w[j], 1);
+            /* "a moeda de Angola", "a capital da Alemanha": what follows "de" owns what is asked */
+            static const char *OWNER[] = {"de", "da", "do", "dos", "das", "em", "no", "na", "nos", "nas", NULL};
+            for (const char **x = OWNER; i > 0 && *x; x++)
+                if (!strcmp(w[i - 1], *x)) { wt *= 1.5; break; }
             if (wt <= best_w) continue;
-            for (int sing = 0; sing < 2; sing++) {
+            /* as titled: "lusiadas" is "Os Lusíadas" */
+            const int art = i > 0 && (!strcmp(w[i - 1], "o") || !strcmp(w[i - 1], "a") || !strcmp(w[i - 1], "os") ||
+                                      !strcmp(w[i - 1], "as"));
+            for (int k = 0; k < 2 + 2 * art && best_w < wt; k++) {
                 char g[256];
-                const int o = run_key(w, i, len, sing, g, sizeof g);
+                const int from = k >= 2 ? i - 1 : i;
+                const int o = run_key(w, from, len + (from < i), k & 1, g, sizeof g);
                 const int id = o > 0 ? mlg_know_lookup(m->know, g, o) : -1;
-                if (id >= 0) { best_w = wt, best = id; break; }
+                if (id >= 0) best_w = wt, best = id;
             }
         }
     if (best < 0)
@@ -970,6 +980,62 @@ static int subject(const mlg_mind *m, const char *text, const int *hits, int n_h
             if (any && all) { best = mlg_know_lead(m->know, hits[h]), best_w = asked; break; }
         }
     return asked > 0.0 && best_w >= 0.4 * asked ? best : -1;
+}
+
+static int definitional(const char *text) {
+    char n[512];
+    norm(text, n, sizeof n);
+    static const char *X[] = {"o que e ", "oque e ", "o que sao ", "quem e ", "quem foi ", "quem sao ", "o que significa ",
+                              "fale sobre ", "fala sobre ", "me fale sobre ", "me fala sobre ", "defina ", "explique ", NULL};
+    for (const char **x = X; *x; x++)
+        if (starts(n, *x)) return 1;
+    return 0;
+}
+
+/* The passage says what the question's words are: "DNA) é", "Neymar foi". Read in the text
+ * as written: folded, "Neymar e Ganso" would look like "Neymar é". */
+static int defines(const mlg_mind *m, const char *question, int id) {
+    char q[512];
+    norm(question, q, sizeof q);
+    char *w[64];
+    const int nw = words(q, w, 64);
+    int xl;
+    const char *x = mlg_know_text(m->know, id, &xl);
+    for (int i = 40; i < xl; i++)  /* a definition opens the passage: its first sentence only */
+        if (x[i] == '.' && (i + 1 == xl || x[i + 1] == ' ') && x[i - 2] != ' ' && x[i - 2] != '.') { xl = i; break; }
+    if (xl > 400) xl = 400;
+    static const char *VERB[] = {" \xc3\xa9 ", " foi ", " s\xc3\xa3o ", " era ", NULL};  /* é, foi, são, era */
+    for (const char **v = VERB; *v; v++) {
+        const int vl = (int)strlen(*v);
+        for (int i = 1; i + vl <= xl; i++) {
+            if (memcmp(x + i, *v, vl)) continue;
+            /* the word right before the verb ("DNA) é"), or the one before a "(...)" between them
+             * ("Pedro Álvares Cabral (Belmonte, 1467 – Santarém) foi"), opening the passage */
+            for (int skip = 0; skip < 2; skip++) {
+                int e = i;
+                if (skip) {
+                    if (e == 0 || x[e - 1] != ')') break;
+                    int depth = 0;
+                    for (int c = e - 1; c >= 0; c--) {
+                        depth += (x[c] == ')') - (x[c] == '(');
+                        if (!depth) { e = c; break; }
+                    }
+                    while (e > 0 && x[e - 1] == ' ') e--;
+                }
+                int a = e;
+                while (a > 0 && x[a - 1] != ' ' && x[a - 1] != '(') a--;
+                if (a > 120) continue;  /* said in passing, deep in a sentence about something else */
+                char prev[128];
+                const int k = mlg_normalize(x + a, e - a, prev, sizeof prev - 1);
+                prev[k] = 0;
+                char *last = strrchr(prev, ' ');
+                last = last ? last + 1 : prev;
+                for (int j = 0; j < nw; j++)
+                    if (weight(m, w[j], 0) > 0.f && !strcmp(last, w[j])) return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 /* ---- thinking ------------------------------------------------------------------ */
@@ -1152,21 +1218,39 @@ int mlg_mind_think(mlg_mind *m, const char *text, mlg_thought *t) {
         float sc[16];
         const int n = query[0] ? mlg_know_search(m->know, query, 16, ids, sc) : 0;
         /* the article the question names speaks first: the passage of it that covers the
-         * question best ("população de Angola"), its lead otherwise */
+         * question best ("a capital da Alemanha"), searched through the whole article, its lead
+         * otherwise */
         const int lead = subject(m, text, ids, n);
         int first = lead;
         if (lead >= 0) {
+            int ltl;
+            const char *ltitle = mlg_know_title(m->know, lead, &ltl);
             double best_c = -1.0;
-            for (int i = -1; i < n; i++) {
-                const int id = i < 0 ? lead : ids[i];
-                if (i >= 0 && (id == lead || mlg_know_lead(m->know, id) != lead)) continue;
+            for (int id = lead; id < mlg_know_count(m->know) && id < lead + 400; id++) {
                 int xl, tl;
-                const char *x = mlg_know_text(m->know, id, &xl), *title = mlg_know_title(m->know, id, &tl);
+                const char *title = mlg_know_title(m->know, id, &tl), *x = mlg_know_text(m->know, id, &xl);
+                if (tl != ltl || memcmp(title, ltitle, tl)) break;  /* the article ends */
                 char whole[1600];
                 snprintf(whole, sizeof whole, "%.*s %.*s", tl, title, xl < 1200 ? xl : 1200, x);
                 const double c = coverage(m, text, whole);
                 if (c > best_c + 1e-6) best_c = c, first = id;
+                if (c > 0.999) break;
             }
+            /* "o que é DNA?" finding the manga "DNA²": its lead does not say what DNA is */
+            t->loose = first == lead && definitional(text) && !defines(m, text, lead);
+        } else if (definitional(text)) {
+            /* "o que é DNA?" with no article titled so: a passage that defines it ("DNA) é ...")
+             * before one that mentions it in passing, which is said as such */
+            t->loose = 1;
+            for (int i = 0; i < n && i < 16; i++)
+                if (defines(m, text, ids[i])) {
+                    t->loose = 0;
+                    const int d = ids[i];
+                    const float ds = sc[i];
+                    memmove(ids + 1, ids, sizeof *ids * i), memmove(sc + 1, sc, sizeof *sc * i);
+                    ids[0] = d, sc[0] = ds;
+                    break;
+                }
         }
         int used = 0;
         for (int i = -2; i < n && used < 2; i++) {
@@ -1331,7 +1415,7 @@ void mlg_mind_finish(mlg_mind *m, const mlg_thought *t, const char *raw, char *o
         extract(m, q, t->evidence, best, sizeof best);
         char in_context[1000];  /* a sentence is read within its article: "Marrocos" is said by the title */
         snprintf(in_context, sizeof in_context, "%s %s", starts(t->evidence_title, MLG_TITLE) ? "" : t->evidence_title, best);
-        if (coverage(m, q, in_context) >= 0.7) snprintf(out, cap, "Pelo que eu sei: %s", best);
+        if (!t->loose && coverage(m, q, in_context) >= 0.7) snprintf(out, cap, "Pelo que eu sei: %s", best);
         else if (starts(t->evidence_title, MLG_TITLE) || !t->evidence_title[0])
             snprintf(out, cap, "Não achei exatamente isso. O que eu sei de mais perto: %s", best);
         else snprintf(out, cap, "Não achei exatamente isso. Sobre %s, eu sei que: %s", t->evidence_title, best);
